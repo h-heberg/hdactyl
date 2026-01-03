@@ -10,6 +10,7 @@
     --color-transparent: transparent;
     --color-black: #000000;
     --color-white: #fff;
+    --color-background: rgb(10, 12, 16);
 
     --color-slate-50: #f8fafc;
     --color-slate-100: #f1f5f9;
@@ -275,11 +276,12 @@
     --color-rose-900: #881337;
     --color-rose-950: #4c0519;
 
-    --color-brand-grad: radial-gradient(109.26% 109.26% at 49.83% 13.37%, #ff343c 0%, #f06f53 100%);
-    --color-brand: #fa4e49;
+    --color-brand-grad: radial-gradient(81.61% 81.61% at 50% 18.39%, #3372E3 0%, #1E3AA8 100%);
+    --color-brand: #3372E3;
 
     --transition-duration-250: 250ms;
-    --breakpoint-ms: 41rem;   /* Medium Small */
+    --breakpoint-ms: 41rem;
+    /* Medium Small */
 }
 
 /*
@@ -291,6 +293,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
     *,
     ::after,
     ::before,
