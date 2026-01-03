@@ -29,6 +29,7 @@ Vagrant.configure("2") do |config|
       host_ip: "127.0.0.1",
       auto_correct: false
   end
+  config.vm.network "public_network"
 
   config.vm.provider "virtualbox" do |vb|
     vb.name   = "pyrodactyl-dev"
