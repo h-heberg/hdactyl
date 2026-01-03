@@ -18,8 +18,6 @@ import { store } from '@/state';
 import { ServerContext } from '@/state/server';
 import { SiteSettings } from '@/state/settings';
 
-import PyrodactylProvider from './PyrodactylProvider';
-
 const DashboardRouter = lazy(() => import('@/routers/DashboardRouter'));
 const ServerRouter = lazy(() => import('@/routers/ServerRouter'));
 const AuthenticationRouter = lazy(() => import('@/routers/AuthenticationRouter'));
@@ -62,60 +60,58 @@ const App = () => {
         <>
             <GlobalStylesheet />
             <StoreProvider store={store}>
-                <PyrodactylProvider>
-                    <div
-                        data-pyro-routerwrap=''
-                        className='relative w-full h-full flex flex-row p-2 overflow-hidden rounded-lg'
-                    >
-                        <Toaster
-                            theme='dark'
-                            toastOptions={{
-                                unstyled: true,
-                                classNames: {
-                                    toast: 'p-4 bg-[#ffffff09] border border-[#ffffff12] rounded-2xl shadow-lg backdrop-blur-2xl flex items-center w-full gap-2',
-                                },
-                            }}
-                        />
-                        <BrowserRouter>
-                            <Routes>
-                                <Route
-                                    path='/auth/*'
-                                    element={
+                <div
+                    data-pyro-routerwrap=''
+                    className='relative w-full h-full flex flex-row overflow-hidden rounded-lg'
+                >
+                    <Toaster
+                        theme='dark'
+                        toastOptions={{
+                            unstyled: true,
+                            classNames: {
+                                toast: 'p-4 bg-[#ffffff09] border border-[#ffffff12] rounded-2xl shadow-lg backdrop-blur-2xl flex items-center w-full gap-2',
+                            },
+                        }}
+                    />
+                    <BrowserRouter>
+                        <Routes>
+                            <Route
+                                path='/auth/*'
+                                element={
+                                    <Spinner.Suspense>
+                                        <AuthenticationRouter />
+                                    </Spinner.Suspense>
+                                }
+                            />
+
+                            <Route
+                                path='/server/:id/*'
+                                element={
+                                    <AuthenticatedRoute>
                                         <Spinner.Suspense>
-                                            <AuthenticationRouter />
+                                            <ServerContext.Provider>
+                                                <ServerRouter />
+                                            </ServerContext.Provider>
                                         </Spinner.Suspense>
-                                    }
-                                />
+                                    </AuthenticatedRoute>
+                                }
+                            />
 
-                                <Route
-                                    path='/server/:id/*'
-                                    element={
-                                        <AuthenticatedRoute>
-                                            <Spinner.Suspense>
-                                                <ServerContext.Provider>
-                                                    <ServerRouter />
-                                                </ServerContext.Provider>
-                                            </Spinner.Suspense>
-                                        </AuthenticatedRoute>
-                                    }
-                                />
+                            <Route
+                                path='/*'
+                                element={
+                                    <AuthenticatedRoute>
+                                        <Spinner.Suspense>
+                                            <DashboardRouter />
+                                        </Spinner.Suspense>
+                                    </AuthenticatedRoute>
+                                }
+                            />
 
-                                <Route
-                                    path='/*'
-                                    element={
-                                        <AuthenticatedRoute>
-                                            <Spinner.Suspense>
-                                                <DashboardRouter />
-                                            </Spinner.Suspense>
-                                        </AuthenticatedRoute>
-                                    }
-                                />
-
-                                <Route path='*' element={<NotFound />} />
-                            </Routes>
-                        </BrowserRouter>
-                    </div>
-                </PyrodactylProvider>
+                            <Route path='*' element={<NotFound />} />
+                        </Routes>
+                    </BrowserRouter>
+                </div>
             </StoreProvider>
         </>
     );
