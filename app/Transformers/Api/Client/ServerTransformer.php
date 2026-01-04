@@ -3,6 +3,7 @@
 namespace Pterodactyl\Transformers\Api\Client;
 
 use Pterodactyl\Models\Egg;
+use Pterodactyl\Models\Nest;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Subuser;
 use League\Fractal\Resource\Item;
@@ -16,7 +17,7 @@ use Pterodactyl\Services\Servers\StartupCommandService;
 
 class ServerTransformer extends BaseClientTransformer
 {
-  protected array $defaultIncludes = ['allocations', 'variables'];
+  protected array $defaultIncludes = ['allocations', 'variables', 'nest'];
 
   protected array $availableIncludes = ['egg', 'subusers'];
 
@@ -122,6 +123,20 @@ class ServerTransformer extends BaseClientTransformer
       $server->variables->where('user_viewable', true),
       $this->makeTransformer(EggVariableTransformer::class),
       EggVariable::RESOURCE_NAME
+    );
+  }
+
+  /**
+   * Returns the nest associated with this server.
+   *
+   * @throws \Pterodactyl\Exceptions\Transformer\InvalidTransformerLevelException
+   */
+  public function includeNest(Server $server): Item
+  {
+    return $this->item(
+      $server->nest,
+      $this->makeTransformer(NestTransformer::class),
+      Nest::RESOURCE_NAME
     );
   }
 

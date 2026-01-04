@@ -16,7 +16,7 @@ import performPasswordReset from '@/api/auth/performPasswordReset';
 
 import useFlash from '@/plugins/useFlash';
 
-import Logo from '../elements/PyroLogo';
+import Logo from '../elements/HLogo';
 
 interface Values {
     password: string;
@@ -107,8 +107,8 @@ function ResetPasswordContainer() {
                 {({ isSubmitting }) => (
                     <LoginFormContainer className={`w-full flex`}>
                         <Link to='/'>
-                            <div className='flex h-12 mb-4 items-center w-full'>
-                                <Logo />
+                            <div className='flex h-12 mb-4 items-center justify-center w-full'>
+                                <Logo text />
                             </div>
                         </Link>
                         <div aria-hidden className='my-8 bg-[#ffffff33] min-h-[1px]'></div>

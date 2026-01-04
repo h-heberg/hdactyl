@@ -85,8 +85,8 @@ jobs:
               id: get_release_branch
               run: |
                   BRANCH=release/${{ steps.get_latest_tag.outputs.latest_tag }}
-                  git config --local user.email "naterfute@pyro.host"
-                  git config --local user.name "Pyrodactyl CI"
+                  git config --local user.email "contact.hheberg@gmail.com"
+                  git config --local user.name "H-Heberg"
                   git checkout -b $BRANCH
                   git push -u origin $BRANCH
                   sed -i "s/'version' => '[0-9]\+\.[0-9]\+\.[0-9]\+',/'version' => '${{ steps.get_latest_tag.outputs.latest_tag }}:1',/" config/app.php

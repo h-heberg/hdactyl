@@ -5,12 +5,20 @@ import { Dialog, RenderDialogProps } from './';
 
 type ConfirmationProps = Omit<RenderDialogProps, 'description' | 'children'> & {
     children: React.ReactNode;
+    variant?: 'danger' | 'primary' | 'secondary';
     confirm?: string | undefined;
     loading?: boolean;
     onConfirmed: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
 };
 
-const ConfirmationDialog = ({ confirm = 'Okay', children, onConfirmed, loading, ...props }: ConfirmationProps) => {
+const ConfirmationDialog = ({
+    confirm = 'Okay',
+    variant = 'danger',
+    children,
+    onConfirmed,
+    loading,
+    ...props
+}: ConfirmationProps) => {
     return (
         <Dialog {...props} description={typeof children === 'string' ? children : undefined}>
             {typeof children !== 'string' && children}
@@ -18,7 +26,7 @@ const ConfirmationDialog = ({ confirm = 'Okay', children, onConfirmed, loading, 
                 <ActionButton variant='secondary' onClick={props.onClose}>
                     Cancel
                 </ActionButton>
-                <ActionButton variant='danger' onClick={onConfirmed} disabled={loading}>
+                <ActionButton variant={variant} onClick={onConfirmed} disabled={loading}>
                     <div className='flex items-center gap-2'>
                         {loading && <Spinner size='small' />}
                         <span>{confirm}</span>

@@ -11,7 +11,7 @@ export default createGlobalStyle`
         width: 100%;
         overflow: hidden;
         --tw-bg-opacity: 1;
-        background-color: rgb(0 0 0 / var(--tw-bg-opacity));
+        background-color: rgb(10 12 16 / var(--tw-bg-opacity));
         font-family: "Plus Jakarta Sans", sans-serif;
         --tw-text-opacity: 1;
         color: rgb(255 255 255 / var(--tw-text-opacity));

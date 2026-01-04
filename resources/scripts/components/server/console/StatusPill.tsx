@@ -26,14 +26,14 @@ export const StatusPill = () => {
             ></div>
             <div className='text-sm font-bold'>
                 {status === 'offline'
-                    ? 'Offline'
+                    ? 'Hors ligne'
                     : status === 'running'
-                      ? 'Online'
+                      ? 'En ligne'
                       : status === 'stopping'
-                        ? 'Stopping'
+                        ? 'Arrêt en cours'
                         : status === 'starting'
-                          ? 'Starting'
-                          : 'Fetching'}
+                          ? 'Démarrage en cours'
+                          : 'Récupération'}
             </div>
         </div>
     );

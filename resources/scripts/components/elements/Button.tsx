@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { JSX } from 'react';
 import styled from 'styled-components';
 
 import Spinner from '@/components/elements/Spinner';

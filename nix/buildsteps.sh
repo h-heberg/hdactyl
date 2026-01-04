@@ -2,7 +2,7 @@
 
 # Configuration Variables
 MYSQL_ROOT_PASS="password"
-MYSQL_USER="pyro"
+MYSQL_USER="hheberg"
 CONTAINER_NAME="mariadb"
 PANEL_DIR="./"  # Adjust to your panel directory
 WINGS_DIR="./wings"  # Adjust to your wings directory
@@ -102,7 +102,7 @@ main() {
         [Yy]* )
             # Create dev user
             php artisan p:user:make -n \
-                --email dev@pyro.host \
+                --email dev@h-heberg.fr \
                 --username dev \
                 --name-first dev \
                 --name-last dev \

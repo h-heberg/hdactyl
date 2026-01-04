@@ -1,10 +1,11 @@
 import { encodePathSegments } from '@/helpers';
 import type { LanguageDescription } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
+import { ArrowRotateRight, ChevronDown, Code } from '@gravity-ui/icons';
 import { For } from 'million/react';
 import { dirname } from 'pathe';
-import { lazy } from 'react';
-import { useEffect, useState } from 'react';
+import { lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { LuSave } from 'react-icons/lu';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -19,6 +20,7 @@ import {
 } from '@/components/elements/DropdownMenu';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
 import PageContentBlock from '@/components/elements/PageContentBlock';
+import Spinner from '@/components/elements/Spinner';
 import FileManagerBreadcrumbs from '@/components/server/files/FileManagerBreadcrumbs';
 import FileNameModal from '@/components/server/files/FileNameModal';
 
@@ -33,259 +35,179 @@ import useFlash from '@/plugins/useFlash';
 const Editor = lazy(() => import('@/components/elements/editor/Editor'));
 
 const FileEditContainer = () => {
-    const [error, setError] = useState('');
     const { action, '*': rawFilename } = useParams<{ action: 'edit' | 'new'; '*': string }>();
-    const [_, setLoading] = useState(action === 'edit');
+    const navigate = useNavigate();
+    const { addError, clearFlashes } = useFlash();
+
+    const [loading, setLoading] = useState(action === 'edit');
     const [content, setContent] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [language, setLanguage] = useState<LanguageDescription>();
-
-    const [filename, setFilename] = useState<string>('');
-
-    useEffect(() => {
-        setFilename(decodeURIComponent(rawFilename ?? ''));
-    }, [rawFilename]);
-
-    const navigate = useNavigate();
+    const [filename, setFilename] = useState<string>(decodeURIComponent(rawFilename ?? ''));
 
     const id = ServerContext.useStoreState((state) => state.server.data!.id);
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
     const setDirectory = ServerContext.useStoreActions((actions) => actions.files.setDirectory);
-    const { addError, clearFlashes } = useFlash();
 
-    let fetchFileContent: null | (() => Promise<string>) = null;
+    const fetchFileContent = useRef<(() => Promise<string>) | null>(null);
 
     useEffect(() => {
-        if (action === 'new') {
-            return;
-        }
+        if (action === 'new') return;
+        if (!filename) return;
 
-        if (filename === '') {
-            return;
-        }
-
-        setError('');
         setLoading(true);
         setDirectory(dirname(filename));
+
         getFileContents(uuid, filename)
             .then(setContent)
             .catch((error) => {
-                console.error(error);
-                setError(httpErrorToHuman(error));
+                addError({ message: httpErrorToHuman(error), key: 'files:view' });
             })
-            .then(() => setLoading(false));
+            .finally(() => setLoading(false));
     }, [action, uuid, filename]);
 
-    const save = (name?: string) => {
-        return new Promise<void>((resolve, reject) => {
-            setLoading(true);
-            toast.success(`Saving ${name ?? filename}...`);
-            clearFlashes('files:view');
-            if (fetchFileContent) {
-                fetchFileContent()
-                    .then((content) => saveFileContents(uuid, name ?? filename, content))
-                    .then(() => {
-                        toast.success(`Saved ${name ?? filename}!`);
-                        if (name) {
-                            navigate(`/server/${id}/files/edit/${encodePathSegments(name)}`);
-                        }
-                        resolve();
-                    })
-                    .catch((error) => {
-                        console.error(error);
-                        addError({ message: httpErrorToHuman(error), key: 'files:view' });
-                        reject(error);
-                    })
-                    .finally(() => setLoading(false));
-            }
-        });
-    };
+    const handleSave = async (name?: string) => {
+        const targetName = name ?? filename;
+        if (!fetchFileContent.current) return;
 
-    const saveAndRestart = async (name?: string) => {
+        setLoading(true);
+        clearFlashes('files:view');
+
         try {
-            await save(name);
-            if (instance) {
-                // they'll stack immediately, so this'll ease that
-                setTimeout(() => {
-                    toast.success('Your server is restarting.');
-                }, 500);
-                instance.send('set state', 'restart');
+            const currentContent = await fetchFileContent.current();
+            await saveFileContents(uuid, targetName, currentContent);
+            toast.success(`Fichier ${targetName} enregistré.`);
+
+            if (name) {
+                navigate(`/server/${id}/files/edit/${encodePathSegments(name)}`);
             }
         } catch (error) {
-            console.error(error);
+            addError({ message: httpErrorToHuman(error), key: 'files:view' });
+        } finally {
+            setLoading(false);
         }
     };
 
-    if (error) {
-        return <div>An error occurred.</div>;
-    }
+    const saveAndRestart = async () => {
+        await handleSave();
+        if (instance) {
+            setTimeout(() => toast.info('Redémarrage du serveur...'), 500);
+            instance.send('set state', 'restart');
+        }
+    };
+
+    const isPyroIgnore = useMemo(() => ['.pyroignore', 'pyroignore'].some((ext) => filename.endsWith(ext)), [filename]);
 
     return (
-        <PageContentBlock title={action === 'edit' ? `Editing ${filename}` : `New File`} className='p-0! h-full'>
+        <PageContentBlock
+            title={action === 'edit' ? `Édition : ${filename}` : `Nouveau fichier`}
+            className='p-0! h-full flex flex-col'
+        >
             <FlashMessageRender byKey={'files:view'} />
 
-            <ErrorBoundary>
-                <div
-                    className={`flex py-6 bg-[#ffffff11] rounded-md rounded-b-none border-[1px] border-[#ffffff07] border-b-0`}
-                >
-                    <span className='-ml-[2rem]'></span>
+            {/* Header / Breadcrumbs */}
+            <div className='flex items-center justify-between px-6 py-4 bg-neutral-900/50 border-b border-white/5'>
+                <ErrorBoundary>
                     <FileManagerBreadcrumbs withinFileEditor isNewFile={action !== 'edit'} />
-                </div>
-            </ErrorBoundary>
+                </ErrorBoundary>
 
-            {['.pyroignore', '.pyroignore'].includes(filename) ? (
-                <div className={`mb-4 p-4 border-l-4 bg-neutral-900 rounded-sm border-cyan-400`}>
-                    <p className={`text-neutral-300 text-sm`}>
-                        You&apos;re editing a{' '}
-                        <code className={`font-mono bg-black rounded-sm py-px px-1`}>.pyroignore</code> file. Any files
-                        or directories listed in here will be excluded from backups. Wildcards are supported by using an
-                        asterisk (<code className={`font-mono bg-black rounded-sm py-px px-1`}>*</code>). You can negate
-                        a prior rule by prepending an exclamation point (
-                        <code className={`font-mono bg-black rounded-sm py-px px-1`}>!</code>).
+                <div className='flex items-center gap-3'>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger className='flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5'>
+                            <Code className='w-3.5 h-3.5 opacity-60' />
+                            <span>{language?.name ?? 'Auto-détection'}</span>
+                            <ChevronDown className='w-3 h-3 opacity-40' />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className='max-h-60 overflow-auto'>
+                            <For each={languages.sort((a, b) => a.name.localeCompare(b.name))} memo>
+                                {(l) => (
+                                    <DropdownMenuItem key={l.name} onSelect={() => setLanguage(l)}>
+                                        {l.name}
+                                    </DropdownMenuItem>
+                                )}
+                            </For>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {action === 'edit' ? (
+                        <Can action={'file.update'}>
+                            <div className='flex'>
+                                <ActionButton
+                                    variant='primary'
+                                    className='rounded-r-none border-r border-black/20 px-4'
+                                    onClick={() => handleSave()}
+                                    disabled={loading}
+                                >
+                                    {loading ? <Spinner size='small' /> : <LuSave className='w-4 h-4 mr-2' />}
+                                    Sauvegarder
+                                </ActionButton>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <ActionButton variant='primary' className='rounded-l-none px-2'>
+                                            <ChevronDown className='w-4 h-4' />
+                                        </ActionButton>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align='end'>
+                                        <DropdownMenuItem onSelect={saveAndRestart} className='gap-2'>
+                                            <ArrowRotateRight className='w-4 h-4' />
+                                            Sauvegarder & Redémarrer
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </Can>
+                    ) : (
+                        <ActionButton variant='primary' onClick={() => setModalVisible(true)}>
+                            Créer le fichier
+                        </ActionButton>
+                    )}
+                </div>
+            </div>
+
+            {/* Infos PyroIgnore */}
+            {isPyroIgnore && (
+                <div className='mx-6 mt-4 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl flex gap-3 items-start'>
+                    <div className='p-2 bg-cyan-500/10 rounded-lg text-cyan-400'>
+                        <Code className='w-4 h-4' />
+                    </div>
+                    <p className='text-sm text-neutral-400 leading-relaxed'>
+                        Vous éditez un fichier <code className='text-cyan-300 font-mono'>.pyroignore</code>. Les
+                        fichiers listés ici seront exclus des sauvegardes. Utilisez{' '}
+                        <code className='text-cyan-300'>*</code> comme joker.
                     </p>
                 </div>
-            ) : null}
+            )}
 
             <FileNameModal
                 visible={modalVisible}
                 onDismissed={() => setModalVisible(false)}
                 onFileNamed={(name) => {
                     setModalVisible(false);
-                    save(name);
+                    handleSave(name);
                 }}
             />
 
-            <div className='h-full relative bg-[#ffffff11] border-[1px] border-[#ffffff07] border-t-0 [&>div>div]:h-full [&>div>div]:outline-hidden! w-full flex-grow'>
-                <Editor
-                    filename={filename}
-                    initialContent={content}
-                    language={language}
-                    onLanguageChanged={(l) => {
-                        setLanguage(l);
-                    }}
-                    fetchContent={(value) => {
-                        fetchFileContent = value;
-                    }}
-                    onContentSaved={() => {
-                        if (action !== 'edit') {
-                            setModalVisible(true);
-                        } else {
-                            save();
-                        }
-                    }}
-                    className='w-full h-full'
-                />
-            </div>
-
-            <div className='flex flex-row items-center gap-4 absolute top-2.5 right-2'>
-                <DropdownMenu>
-                    <DropdownMenuTrigger className='flex items-center gap-2 font-bold text-sm px-3 py-1 rounded-md h-fit bg-[#ffffff11]'>
-                        <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'>
-                            <path
-                                d='M8 12H8.00897M11.9955 12H12.0045M15.991 12H16'
-                                stroke='currentColor'
-                                strokeWidth='2'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                            />
-                            <path
-                                d='M18 21C19.2322 21 20.231 19.8487 20.231 18.4286C20.231 16.1808 20.1312 14.6865 21.6733 12.9091C22.1089 12.407 22.1089 11.593 21.6733 11.0909C20.1312 9.31354 20.231 7.81916 20.231 5.57143C20.231 4.15127 19.2322 3 18 3'
-                                stroke='currentColor'
-                                strokeWidth='1.5'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                            />
-                            <path
-                                d='M6 21C4.76784 21 3.76897 19.8487 3.76897 18.4286C3.76897 16.1808 3.86877 14.6865 2.32673 12.9091C1.89109 12.407 1.89109 11.593 2.32673 11.0909C3.83496 9.35251 3.76897 7.83992 3.76897 5.57143C3.76897 4.15127 4.76784 3 6 3'
-                                stroke='currentColor'
-                                strokeWidth='1.5'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                            />
-                        </svg>
-                        <span className='sm:block hidden'>{language?.name ?? 'Language'}</span>
-                        <svg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 13 13' fill='none'>
-                            <path
-                                fillRule='evenodd'
-                                clipRule='evenodd'
-                                d='M3.39257 5.3429C3.48398 5.25161 3.60788 5.20033 3.73707 5.20033C3.86626 5.20033 3.99016 5.25161 4.08157 5.3429L6.49957 7.7609L8.91757 5.3429C8.9622 5.29501 9.01602 5.25659 9.07582 5.22995C9.13562 5.2033 9.20017 5.18897 9.26563 5.18782C9.33109 5.18667 9.39611 5.19871 9.45681 5.22322C9.51751 5.24774 9.57265 5.28424 9.61895 5.33053C9.66524 5.37682 9.70173 5.43196 9.72625 5.49267C9.75077 5.55337 9.76281 5.61839 9.76166 5.68384C9.7605 5.7493 9.74617 5.81385 9.71953 5.87365C9.69288 5.93345 9.65447 5.98727 9.60657 6.0319L6.84407 8.7944C6.75266 8.8857 6.62876 8.93698 6.49957 8.93698C6.37038 8.93698 6.24648 8.8857 6.15507 8.7944L3.39257 6.0319C3.30128 5.9405 3.25 5.81659 3.25 5.6874C3.25 5.55822 3.30128 5.43431 3.39257 5.3429Z'
-                                fill='white'
-                                fillOpacity='0.37'
-                            />
-                        </svg>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className='max-h-50 overflow-auto z-99999' sideOffset={8}>
-                        <For each={languages.sort((a, b) => a.name.localeCompare(b.name))} memo>
-                            {(language) => (
-                                <DropdownMenuItem
-                                    key={language.name}
-                                    onSelect={() => {
-                                        setLanguage(languages.find((l) => l.name === language.name));
-                                    }}
-                                >
-                                    {language.name}
-                                </DropdownMenuItem>
-                            )}
-                        </For>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                {action === 'edit' ? (
-                    <Can action={'file.update'}>
-                        <div className='flex gap-1 items-center justify-center'>
-                            <ActionButton
-                                variant='primary'
-                                size='lg'
-                                className='rounded-l-full rounded-r-none pl-8 pr-6'
-                                onClick={() => save()}
-                            >
-                                Save{' '}
-                                <span className='ml-2 font-mono text-xs font-bold uppercase lg:inline-block hidden'>
-                                    CTRL + S
-                                </span>
-                            </ActionButton>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <ActionButton
-                                        variant='primary'
-                                        size='lg'
-                                        className='rounded-r-full rounded-l-none px-2'
-                                    >
-                                        <svg
-                                            xmlns='http://www.w3.org/2000/svg'
-                                            width='13'
-                                            height='13'
-                                            viewBox='0 0 13 13'
-                                            fill='none'
-                                        >
-                                            <path
-                                                fillRule='evenodd'
-                                                clipRule='evenodd'
-                                                d='M3.39257 5.3429C3.48398 5.25161 3.60788 5.20033 3.73707 5.20033C3.86626 5.20033 3.99016 5.25161 4.08157 5.3429L6.49957 7.7609L8.91757 5.3429C8.9622 5.29501 9.01602 5.25659 9.07582 5.22995C9.13562 5.2033 9.20017 5.18897 9.26563 5.18782C9.33109 5.18667 9.39611 5.19871 9.45681 5.22322C9.51751 5.24774 9.57265 5.28424 9.61895 5.33053C9.66524 5.37682 9.70173 5.43196 9.72625 5.49267C9.75077 5.55337 9.76281 5.61839 9.76166 5.68384C9.7605 5.7493 9.74617 5.81385 9.71953 5.87365C9.69288 5.93345 9.65447 5.98727 9.60657 6.0319L6.84407 8.7944C6.75266 8.8857 6.62876 8.93698 6.49957 8.93698C6.37038 8.93698 6.24648 8.8857 6.15507 8.7944L3.39257 6.0319C3.30128 5.9405 3.25 5.81659 3.25 5.6874C3.25 5.55822 3.30128 5.43431 3.39257 5.3429Z'
-                                                fill='white'
-                                            />
-                                        </svg>
-                                    </ActionButton>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    className='max-h-[calc(100vh-4rem)] overflow-auto z-99999'
-                                    sideOffset={8}
-                                >
-                                    <DropdownMenuItem onSelect={() => saveAndRestart()}>
-                                        Save & Restart
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </Can>
-                ) : (
-                    <Can action={'file.create'}>
-                        <ActionButton variant='secondary' size='lg' onClick={() => setModalVisible(true)}>
-                            Create File
-                        </ActionButton>
-                    </Can>
+            {/* Editor Container */}
+            <div className='flex-grow relative mt-4 overflow-hidden border-t border-white/5'>
+                {loading && !content && (
+                    <div className='absolute inset-0 z-10 flex items-center justify-center bg-neutral-950/50 backdrop-blur-sm'>
+                        <Spinner />
+                    </div>
                 )}
+                <div className='h-full w-full'>
+                    <Editor
+                        filename={filename}
+                        initialContent={content}
+                        language={language}
+                        onLanguageChanged={setLanguage}
+                        fetchContent={(val) => {
+                            fetchFileContent.current = val;
+                        }}
+                        onContentSaved={() => (action === 'edit' ? handleSave() : setModalVisible(true))}
+                        className='h-full border-none'
+                    />
+                </div>
             </div>
         </PageContentBlock>
     );

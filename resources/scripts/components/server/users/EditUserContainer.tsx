@@ -47,7 +47,7 @@ const EditUserContainer = () => {
                         className='flex items-center gap-2'
                     >
                         <ChevronLeft width={22} height={22} fill='currentColor' />
-                        Back to Users
+                        Retour aux utilisateurs
                     </ActionButton>
                 </MainPageHeader>
                 <div className='flex items-center justify-center py-12'>
@@ -68,7 +68,7 @@ const EditUserContainer = () => {
                         className='flex items-center gap-2'
                     >
                         <ChevronLeft width={22} height={22} className='w-4 h-4' fill='currentColor' />
-                        Back to Users
+                        Retour aux utilisateurs
                     </ActionButton>
                 </MainPageHeader>
                 <div className='flex flex-col items-center justify-center py-12 px-4'>
@@ -76,9 +76,9 @@ const EditUserContainer = () => {
                         <div className='w-16 h-16 mx-auto mb-4 rounded-full bg-[#ffffff11] flex items-center justify-center'>
                             <Person width={22} height={22} className='w-8 h-8 text-zinc-400' fill='currentColor' />
                         </div>
-                        <h3 className='text-lg font-medium text-zinc-200 mb-2'>User not found</h3>
+                        <h3 className='text-lg font-medium text-zinc-200 mb-2'>Utilisateur non trouvé</h3>
                         <p className='text-sm text-zinc-400 max-w-sm'>
-                            The user you&apos;re trying to edit could not be found.
+                            L&apos;utilisateur que vous essayez de modifier est introuvable.
                         </p>
                     </div>
                 </div>
@@ -96,7 +96,7 @@ const EditUserContainer = () => {
                     disabled={isSubmitting}
                 >
                     <ChevronLeft width={22} height={22} className='w-4 h-4' fill='currentColor' />
-                    Back to Users
+                    Retour aux utilisateurs
                 </ActionButton>
             </MainPageHeader>
 

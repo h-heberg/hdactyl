@@ -1,6 +1,8 @@
-import { Database, Eye, TrashBin } from '@gravity-ui/icons';
+import { Copy, Database, Eye, TrashBin } from '@gravity-ui/icons';
+import clsx from 'clsx';
 import { Form, Formik, FormikHelpers } from 'formik';
-import { useState } from 'react';
+import { memo, useState } from 'react';
+import isEqual from 'react-fast-compare';
 import styled from 'styled-components';
 import { object, string } from 'yup';
 
@@ -12,7 +14,6 @@ import Field from '@/components/elements/Field';
 import Input from '@/components/elements/Input';
 import Modal from '@/components/elements/Modal';
 import Spinner from '@/components/elements/Spinner';
-import { PageListItem } from '@/components/elements/pages/PageList';
 import RotatePasswordButton from '@/components/server/databases/RotatePasswordButton';
 
 import { httpErrorToHuman } from '@/api/http';
@@ -26,7 +27,10 @@ import useFlash from '@/plugins/useFlash';
 const Label = styled.label`
     display: inline-block;
     color: #ffffff77;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     padding-bottom: 0.5rem;
 `;
 
@@ -47,8 +51,11 @@ const DatabaseRow = ({ database }: Props) => {
 
     const schema = object().shape({
         confirm: string()
-            .required('The database name must be provided.')
-            .oneOf([database.name.split('_', 2)[1] || '', database.name], 'The database name must be provided.'),
+            .required('Le nom de la base de données doit être fourni.')
+            .oneOf(
+                [database.name.split('_', 2)[1] || '', database.name],
+                'Le nom de la base de données ne correspond pas.',
+            ),
     });
 
     const submit = (_: { confirm: string }, { setSubmitting, resetForm }: FormikHelpers<{ confirm: string }>) => {
@@ -62,18 +69,15 @@ const DatabaseRow = ({ database }: Props) => {
             })
             .catch((error) => {
                 resetForm();
-                console.error(error);
                 setSubmitting(false);
-                addError({
-                    key: 'database:delete',
-                    message: httpErrorToHuman(error),
-                });
+                addError({ key: 'database:delete', message: httpErrorToHuman(error) });
             });
     };
 
     return (
         <>
-            <Formik onSubmit={submit} initialValues={{ confirm: '' }} validationSchema={schema} isInitialValid={false}>
+            {/* Modal de suppression et de détails conservés (logique inchangée) */}
+            <Formik onSubmit={submit} initialValues={{ confirm: '' }} validationSchema={schema}>
                 {({ isSubmitting, isValid, resetForm }) => (
                     <Modal
                         visible={visible}
@@ -83,30 +87,27 @@ const DatabaseRow = ({ database }: Props) => {
                             setVisible(false);
                             resetForm();
                         }}
-                        title='Confirm database deletion'
+                        title='Supprimer la base de données'
                     >
                         <FlashMessageRender byKey={'database:delete'} />
                         <div className='flex flex-col'>
-                            <p>
-                                Deleting a database is a permanent action, it cannot be undone. This will permanently
-                                delete the <strong>{database.name}</strong> database and remove all its data.
+                            <p className='text-zinc-400 text-sm'>
+                                Cette action est permanente. La base <strong>{database.name}</strong> sera
+                                définitivement supprimée.
                             </p>
                             <Form className='mt-6'>
                                 <Field
-                                    type={'text'}
-                                    id={'confirm_name'}
                                     name={'confirm'}
-                                    label={'Confirm Database Name'}
-                                    description={'Enter the database name to confirm deletion.'}
+                                    label={'Confirmer le nom'}
+                                    description={'Saisissez le nom de la base pour confirmer.'}
                                 />
                                 <ActionButton
                                     variant='danger'
-                                    type={'submit'}
-                                    className='min-w-full my-6'
+                                    type='submit'
+                                    className='w-full my-6'
                                     disabled={!isValid || isSubmitting}
                                 >
-                                    {isSubmitting && <Spinner size='small' />}
-                                    {isSubmitting ? 'Deleting...' : 'Delete Database'}
+                                    {isSubmitting ? 'Suppression...' : 'Supprimer définitivement'}
                                 </ActionButton>
                             </Form>
                         </div>
@@ -116,42 +117,35 @@ const DatabaseRow = ({ database }: Props) => {
 
             <Modal
                 visible={connectionVisible}
-                title='Database connection details'
-                closeButton={true}
+                title='Détails de connexion'
                 onDismissed={() => setConnectionVisible(false)}
             >
-                <FlashMessageRender byKey={'database-connection-modal'} />
-                <div className='flex flex-col min-w-full gap-4'>
-                    <div className='grid gap-4 sm:grid-cols-2 min-w-full'>
+                <div className='flex flex-col gap-5'>
+                    <div className='grid gap-4 sm:grid-cols-2'>
                         <div className='flex flex-col'>
-                            <Label>Endpoint</Label>
+                            <Label>Hôte (Endpoint)</Label>
                             <CopyOnClick text={database.connectionString}>
-                                <Input type={'text'} readOnly value={database.connectionString} />
+                                <Input readOnly value={database.connectionString} />
                             </CopyOnClick>
                         </div>
                         <div className='flex flex-col'>
-                            <Label>Connections from</Label>
+                            <Label>Connexions autorisées</Label>
                             <CopyOnClick text={database.allowConnectionsFrom}>
-                                <Input type={'text'} readOnly value={database.allowConnectionsFrom} />
+                                <Input readOnly value={database.allowConnectionsFrom} />
                             </CopyOnClick>
                         </div>
                         <div className='flex flex-col'>
-                            <Label>Username</Label>
+                            <Label>Utilisateur</Label>
                             <CopyOnClick text={database.username}>
-                                <Input type={'text'} readOnly value={database.username} />
+                                <Input readOnly value={database.username} />
                             </CopyOnClick>
                         </div>
                         <Can action={'database.view_password'}>
                             <div className='flex flex-col'>
-                                <Label>Password</Label>
-                                <div className='flex flex-row min-w-full gap-2'>
+                                <Label>Mot de passe</Label>
+                                <div className='flex gap-2'>
                                     <CopyOnClick text={database.password} showInNotification={false}>
-                                        <Input
-                                            type={'password'}
-                                            readOnly
-                                            value={database.password}
-                                            className='flex-auto'
-                                        />
+                                        <Input type='password' readOnly value={database.password} className='w-full' />
                                     </CopyOnClick>
                                     <Can action={'database.update'}>
                                         <RotatePasswordButton databaseId={database.id} onUpdate={appendDatabase} />
@@ -160,79 +154,96 @@ const DatabaseRow = ({ database }: Props) => {
                             </div>
                         </Can>
                     </div>
-                    <div className='flex flex-col'>
-                        <div className='flex flex-row gap-2 align-middle items-center'>
-                            <Label>JDBC Connection String</Label>
-                        </div>
+                    <div className='flex flex-col mb-8'>
+                        <Label>Chaîne JDBC</Label>
                         <CopyOnClick text={jdbcConnectionString} showInNotification={false}>
-                            <Input type={'password'} readOnly value={jdbcConnectionString} />
+                            <Input type='password' readOnly value={jdbcConnectionString} />
                         </CopyOnClick>
                     </div>
                 </div>
             </Modal>
 
-            <PageListItem>
-                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full'>
-                    <div className='flex-1 min-w-0'>
-                        <div className='flex items-center gap-3 mb-2'>
-                            <div className='flex-shrink-0 w-8 h-8 rounded-lg bg-[#ffffff11] flex items-center justify-center'>
-                                <Database fill='currentColor' className='text-zinc-400 w-4 h-4' />
-                            </div>
-                            <div className='min-w-0 flex-1'>
-                                <CopyOnClick text={database.name}>
-                                    <h3 className='text-base font-medium text-zinc-100 truncate'>{database.name}</h3>
-                                </CopyOnClick>
-                            </div>
+            {/* Nouveau design de la ligne */}
+            <div
+                className={clsx(
+                    'group relative overflow-hidden transition-all duration-300 mb-2',
+                    'bg-white/[0.01] hover:bg-white/[0.03] border border-white/[0.05] hover:border-white/10',
+                    'rounded-3xl p-4 sm:p-5',
+                )}
+            >
+                <div className='relative z-10 flex flex-col md:flex-row md:items-center gap-5'>
+                    {/* Left: Icon & DB Name */}
+                    <div className='flex items-start gap-4 flex-1 min-w-0'>
+                        <div className='hidden sm:flex p-3 bg-zinc-900/50 rounded-xl border border-white/5 text-zinc-500 group-hover:text-zinc-300 transition-colors'>
+                            <Database width={20} height={20} />
                         </div>
 
-                        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm'>
-                            <div>
-                                <p className='text-xs text-zinc-500 uppercase tracking-wide mb-1'>Endpoint</p>
-                                <CopyOnClick text={database.connectionString}>
-                                    <p className='text-zinc-300 font-mono truncate'>{database.connectionString}</p>
+                        <div className='flex-1 min-w-0'>
+                            <div className='flex items-center gap-3 flex-wrap mb-1'>
+                                <CopyOnClick text={database.name}>
+                                    <div className='cursor-pointer group/copy flex items-center gap-2'>
+                                        <h3 className='text-sm sm:text-base font-bold text-zinc-100 group-hover/copy:text-white transition-colors tracking-tight'>
+                                            {database.name}
+                                        </h3>
+                                        <Copy
+                                            width={14}
+                                            height={14}
+                                            className='text-zinc-600 group-hover/copy:text-zinc-400'
+                                        />
+                                    </div>
                                 </CopyOnClick>
                             </div>
-                            <div>
-                                <p className='text-xs text-zinc-500 uppercase tracking-wide mb-1'>From</p>
-                                <CopyOnClick text={database.allowConnectionsFrom}>
-                                    <p className='text-zinc-300 font-mono truncate'>{database.allowConnectionsFrom}</p>
-                                </CopyOnClick>
-                            </div>
-                            <div>
-                                <p className='text-xs text-zinc-500 uppercase tracking-wide mb-1'>Username</p>
-                                <CopyOnClick text={database.username}>
-                                    <p className='text-zinc-300 font-mono truncate'>{database.username}</p>
-                                </CopyOnClick>
+
+                            {/* Metadata Grid */}
+                            <div className='flex flex-wrap gap-x-6 gap-y-1'>
+                                <div className='flex items-center gap-2'>
+                                    <span className='text-[10px] uppercase font-black text-zinc-600 tracking-tighter'>
+                                        Host:
+                                    </span>
+                                    <span className='text-xs font-mono text-zinc-400 truncate max-w-[150px]'>
+                                        {database.connectionString}
+                                    </span>
+                                </div>
+                                <div className='flex items-center gap-2'>
+                                    <span className='text-[10px] uppercase font-black text-zinc-600 tracking-tighter'>
+                                        User:
+                                    </span>
+                                    <span className='text-xs font-mono text-zinc-400'>{database.username}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className='flex items-center gap-2 sm:flex-col sm:gap-3'>
-                        <ActionButton
-                            variant='secondary'
-                            size='sm'
+                    {/* Right: Actions */}
+                    <div className='flex items-center gap-2 sm:justify-end shrink-0'>
+                        <button
                             onClick={() => setConnectionVisible(true)}
-                            className='flex items-center gap-2'
+                            className={clsx(
+                                'flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all border',
+                                'bg-zinc-900/50 text-zinc-400 border-white/5 hover:border-white/20 hover:text-white hover:bg-zinc-800',
+                            )}
                         >
-                            <Eye fill='currentColor' className='w-4 h-4' />
-                            <span className='hidden sm:inline'>Details</span>
-                        </ActionButton>
+                            <Eye width={14} height={14} />
+                            <span className='hidden lg:inline'>Détails Connexion</span>
+                            <span className='lg:hidden'>Détails</span>
+                        </button>
+
                         <Can action={'database.delete'}>
-                            <ActionButton
-                                variant='danger'
-                                size='sm'
+                            <button
                                 onClick={() => setVisible(true)}
-                                className='flex items-center gap-2'
+                                className={clsx(
+                                    'p-2.5 rounded-xl transition-all border',
+                                    'bg-red-500/5 text-red-500/50 border-red-500/10 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/40',
+                                )}
                             >
-                                <TrashBin fill='currentColor' className='w-4 h-4' />
-                                <span className='hidden sm:inline'>Delete</span>
-                            </ActionButton>
+                                <TrashBin width={18} height={18} />
+                            </button>
                         </Can>
                     </div>
                 </div>
-            </PageListItem>
+            </div>
         </>
     );
 };
 
-export default DatabaseRow;
+export default memo(DatabaseRow, isEqual);

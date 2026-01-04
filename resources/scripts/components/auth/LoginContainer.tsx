@@ -1,7 +1,6 @@
-import { useStoreState } from 'easy-peasy';
 import type { FormikHelpers } from 'formik';
 import { Formik } from 'formik';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { object, string } from 'yup';
 
@@ -9,7 +8,7 @@ import LoginFormContainer from '@/components/auth/LoginFormContainer';
 import Button from '@/components/elements/Button';
 import Captcha, { getCaptchaResponse } from '@/components/elements/Captcha';
 import Field from '@/components/elements/Field';
-import Logo from '@/components/elements/PyroLogo';
+import Logo from '@/components/elements/HLogo';
 
 import CaptchaManager from '@/lib/captcha';
 
@@ -48,7 +47,7 @@ function LoginContainer() {
                 } else {
                     // Captcha is enabled but no response - show error
                     console.error('Captcha enabled but no response available');
-                    clearAndAddHttpError({ error: new Error('Please complete the captcha verification.') });
+                    clearAndAddHttpError({ error: new Error('Veuillez compléter la vérification captcha.') });
                     setSubmitting(false);
                     return;
                 }
@@ -69,7 +68,9 @@ function LoginContainer() {
                 setSubmitting(false);
 
                 if (error.code === 'InvalidCredentials') {
-                    clearAndAddHttpError({ error: new Error('Invalid username or password. Please try again.') });
+                    clearAndAddHttpError({
+                        error: new Error("Nom d'utilisateur ou mot de passe invalide. Veuillez réessayer."),
+                    });
                 } else if (error.code === 'DisplayException') {
                     clearAndAddHttpError({ error: new Error(error.detail || error.message) });
                 } else {
@@ -83,19 +84,21 @@ function LoginContainer() {
             onSubmit={onSubmit}
             initialValues={{ user: '', password: '' }}
             validationSchema={object().shape({
-                user: string().required('A username or email must be provided.'),
-                password: string().required('Please enter your account password.'),
+                user: string().required("Un nom d'utilisateur ou un email doit être fourni."),
+                password: string().required('Veuillez entrer le mot de passe de votre compte.'),
             })}
         >
             {({ isSubmitting }) => (
-                <LoginFormContainer className={`w-full flex`}>
-                    <div className='flex h-12 mb-4 items-center w-full'>
+                <LoginFormContainer
+                    className={`w-full flex bg-[#0A0B0D] border border-white/10 hover:border-white/20 shadow-lg rounded-xl px-8 py-10 transition-all`}
+                >
+                    <div className='flex h-12 mb-4 items-center justify-center w-full'>
                         <Logo />
                     </div>
                     <div aria-hidden className='my-8 bg-[#ffffff33] min-h-[1px]'></div>
-                    <h2 className='text-xl font-extrabold mb-2'>Login</h2>
+                    <h2 className='text-xl font-extrabold mb-2'>Connexion</h2>
 
-                    <Field id='user' type={'text'} label={'Username or Email'} name={'user'} disabled={isSubmitting} />
+                    <Field id='user' type={'text'} label={'Email'} name={'user'} disabled={isSubmitting} />
 
                     <div className={`relative mt-6`}>
                         <Field
@@ -109,7 +112,7 @@ function LoginContainer() {
                             to={'/auth/password'}
                             className={`text-xs text-zinc-500 tracking-wide no-underline hover:text-zinc-600 absolute top-1 right-0`}
                         >
-                            Forgot Password?
+                            Mot de passe oublié?
                         </Link>
                     </div>
 
@@ -131,7 +134,7 @@ function LoginContainer() {
                             isLoading={isSubmitting}
                             disabled={isSubmitting}
                         >
-                            Login
+                            Se connecter
                         </Button>
                     </div>
                 </LoginFormContainer>

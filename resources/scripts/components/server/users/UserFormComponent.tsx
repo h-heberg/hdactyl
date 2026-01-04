@@ -1,7 +1,19 @@
-import { AntennaSignal, Calendar, Copy, Database, FolderOpen, Gear, Person, Server, Shield } from '@gravity-ui/icons';
+import {
+    AntennaSignal,
+    Calendar,
+    Check,
+    Copy,
+    Database,
+    FolderOpen,
+    Gear,
+    Person,
+    Server,
+    Shield,
+} from '@gravity-ui/icons';
+import clsx from 'clsx';
 import { Actions, useStoreActions, useStoreState } from 'easy-peasy';
 import { Form, Formik } from 'formik';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { array, object, string } from 'yup';
 
 import FlashMessageRender from '@/components/FlashMessageRender';
@@ -45,18 +57,14 @@ const UserFormComponent = ({ subuser, onSuccess, onCancel, flashKey, isSubmittin
     const loggedInPermissions = ServerContext.useStoreState((state) => state.server.permissions);
     const [canEditUser] = usePermissions(subuser ? ['user.update'] : ['user.create']);
 
-    // The permissions that can be modified by this user.
     const editablePermissions = useDeepCompareMemo(() => {
         const cleaned = Object.keys(permissions).map((key) =>
             Object.keys(permissions[key]?.keys ?? {}).map((pkey) => `${key}.${pkey}`),
         );
-
         const list: string[] = ([] as string[]).concat.apply([], Object.values(cleaned));
-
         if (isRootAdmin || (loggedInPermissions.length === 1 && loggedInPermissions[0] === '*')) {
             return list;
         }
-
         return list.filter((key) => loggedInPermissions.indexOf(key) >= 0);
     }, [isRootAdmin, permissions, loggedInPermissions]);
 
@@ -70,18 +78,12 @@ const UserFormComponent = ({ subuser, onSuccess, onCancel, flashKey, isSubmittin
                 onSuccess(subuser);
             })
             .catch((error) => {
-                console.error(error);
                 if (setIsSubmitting) setIsSubmitting(false);
                 clearAndAddHttpError({ key: flashKey, error });
             });
     };
 
-    useEffect(
-        () => () => {
-            clearFlashes(flashKey);
-        },
-        [],
-    );
+    useEffect(() => () => clearFlashes(flashKey), []);
 
     const getPermissionIcon = (key: string) => {
         switch (key) {
@@ -119,184 +121,178 @@ const UserFormComponent = ({ subuser, onSuccess, onCancel, flashKey, isSubmittin
                     } as Values
                 }
                 validationSchema={object().shape({
-                    email: string()
-                        .max(191, 'Email addresses must not exceed 191 characters.')
-                        .email('A valid email address must be provided.')
-                        .required('A valid email address must be provided.'),
+                    email: string().max(191).email().required(),
                     permissions: array().of(string()),
                 })}
             >
                 {({ setFieldValue, values }) => (
-                    <Form className='space-y-6'>
-                        {/* User Information Section */}
+                    <Form className='space-y-12'>
+                        {/* Section Information */}
                         {!subuser && (
-                            <div className='bg-gradient-to-b from-[#ffffff08] to-[#ffffff05] border border-[#ffffff12] rounded-xl p-6'>
-                                <div className='flex items-center gap-3 mb-6'>
-                                    <div className='w-10 h-10 rounded-lg bg-brand/20 flex items-center justify-center'>
-                                        <Person
-                                            width={22}
-                                            height={22}
-                                            fill='currentColor'
-                                            className='w-5 h-5 text-brand'
-                                        />
-                                    </div>
-                                    <h3 className='text-xl font-semibold text-zinc-100'>User Information</h3>
+                            <div className='relative'>
+                                <div className='flex items-center gap-4 mb-6'>
+                                    <div className='w-1 bg-blue-500 h-6 rounded-full' />
+                                    <h3 className='text-lg font-black text-white uppercase tracking-wider'>Identité</h3>
                                 </div>
-                                <Field
-                                    name={'email'}
-                                    label={'Email Address'}
-                                    description={
-                                        'Enter the email address of the user you wish to invite as a subuser for this server.'
-                                    }
-                                />
+                                <div className='bg-white/[0.02] border border-white/[0.05] rounded-[2rem] p-8'>
+                                    <Field
+                                        name={'email'}
+                                        label={'Adresse Email'}
+                                        description={
+                                            "L'utilisateur recevra une invitation par mail pour accéder à ce serveur."
+                                        }
+                                    />
+                                </div>
                             </div>
                         )}
 
-                        {/* Permissions Section */}
-                        <div className='bg-gradient-to-b from-[#ffffff08] to-[#ffffff05] border border-[#ffffff12] rounded-xl p-6'>
-                            <div className='flex items-center justify-between mb-6'>
-                                <div className='flex items-center gap-3'>
-                                    <div className='w-10 h-10 rounded-lg bg-brand/20 flex items-center justify-center'>
-                                        <Gear
-                                            width={22}
-                                            height={22}
-                                            fill='currentColor'
-                                            className='w-5 h-5 text-brand'
-                                        />
-                                    </div>
-                                    <h3 className='text-xl font-semibold text-zinc-100'>Detailed Permissions</h3>
+                        {/* Section Permissions */}
+                        <div className='relative'>
+                            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8'>
+                                <div className='flex items-center gap-4'>
+                                    <div className='w-1 bg-blue-500 h-6 rounded-full' />
+                                    <h3 className='text-lg font-black text-white uppercase tracking-wider'>
+                                        Permissions détaillées
+                                    </h3>
                                 </div>
+
                                 {canEditUser && (
                                     <button
                                         type='button'
                                         onClick={() => {
-                                            const allPermissions = editablePermissions;
-                                            const allSelected = allPermissions.every((p) =>
+                                            const allSelected = editablePermissions.every((p) =>
                                                 values.permissions.includes(p),
                                             );
-                                            if (allSelected) {
-                                                setFieldValue('permissions', []);
-                                            } else {
-                                                setFieldValue('permissions', [...allPermissions]);
-                                            }
+                                            setFieldValue('permissions', allSelected ? [] : [...editablePermissions]);
                                         }}
-                                        className='text-sm px-4 py-2 rounded-lg bg-brand/10 hover:bg-brand/20 text-brand border border-brand/20 hover:border-brand/30 transition-colors font-medium'
+                                        className='text-[10px] uppercase tracking-[0.2em] font-black px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all border border-white/5'
                                     >
                                         {editablePermissions.every((p) => values.permissions.includes(p))
-                                            ? 'Deselect All'
-                                            : 'Select All'}
+                                            ? 'Tout désélectionner'
+                                            : 'Tout sélectionner'}
                                     </button>
                                 )}
                             </div>
 
                             {!isRootAdmin && loggedInPermissions[0] !== '*' && (
-                                <div className='mb-6 p-4 bg-brand/10 border border-brand/20 rounded-lg'>
-                                    <div className='flex items-center gap-3 mb-2'>
-                                        <Shield
-                                            width={22}
-                                            height={22}
-                                            fill='currentColor'
-                                            className='w-5 h-5 text-brand'
-                                        />
-                                        <span className='text-sm font-semibold text-brand'>Permission Restriction</span>
-                                    </div>
-                                    <p className='text-sm text-zinc-300 leading-relaxed'>
-                                        You can only assign permissions that you currently have access to.
+                                <div className='mb-8 p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex items-center gap-4'>
+                                    <Shield className='text-blue-500' width={20} />
+                                    <p className='text-xs text-blue-200/60 font-medium'>
+                                        Certaines permissions sont masquées car vous ne les possédez pas vous-même.
                                     </p>
                                 </div>
                             )}
 
-                            <div className='space-y-4'>
+                            <div className='grid grid-cols-1 gap-6'>
                                 {Object.keys(permissions)
                                     .filter((key) => key !== 'websocket')
-                                    .map((key) => (
-                                        <div key={key} className='border border-[#ffffff12] rounded-lg p-4'>
-                                            <div className='flex items-start justify-between mb-3'>
-                                                <div className='flex items-start gap-3 flex-1 min-w-0'>
-                                                    {(() => {
-                                                        const Icon = getPermissionIcon(key);
-                                                        return (
-                                                            <Icon
-                                                                width={22}
-                                                                height={22}
-                                                                fill='currentColor'
-                                                                className=' text-brand flex-shrink-0 mt-0.5'
-                                                            />
-                                                        );
-                                                    })()}
-                                                    <div className='flex-1 min-w-0'>
-                                                        <h4 className='font-medium text-zinc-200 capitalize'>{key}</h4>
-                                                        <p className='text-xs text-zinc-400 mt-1 break-words'>
-                                                            {permissions[key]?.description}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                {canEditUser && (
-                                                    <button
-                                                        type='button'
-                                                        onClick={() => {
-                                                            const categoryPermissions = Object.keys(
-                                                                permissions[key]?.keys ?? {},
-                                                            ).map((pkey) => `${key}.${pkey}`);
-                                                            const allSelected = categoryPermissions.every((p) =>
-                                                                values.permissions.includes(p),
-                                                            );
-                                                            if (allSelected) {
-                                                                setFieldValue(
-                                                                    'permissions',
-                                                                    values.permissions.filter(
-                                                                        (p) => !categoryPermissions.includes(p),
-                                                                    ),
-                                                                );
-                                                            } else {
-                                                                const newPermissions = [...values.permissions];
-                                                                categoryPermissions.forEach((p) => {
-                                                                    if (
-                                                                        !newPermissions.includes(p) &&
-                                                                        editablePermissions.includes(p)
-                                                                    ) {
-                                                                        newPermissions.push(p);
-                                                                    }
-                                                                });
-                                                                setFieldValue('permissions', newPermissions);
-                                                            }
-                                                        }}
-                                                        className='text-xs px-3 py-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors whitespace-nowrap flex-shrink-0'
-                                                    >
-                                                        {Object.keys(permissions[key]?.keys ?? {})
-                                                            .map((pkey) => `${key}.${pkey}`)
-                                                            .every((p) => values.permissions.includes(p))
-                                                            ? 'Deselect All'
-                                                            : 'Select All'}
-                                                    </button>
-                                                )}
-                                            </div>
+                                    .map((key) => {
+                                        const Icon = getPermissionIcon(key);
+                                        const categoryKeys = Object.keys(permissions[key]?.keys ?? {}).map(
+                                            (pkey) => `${key}.${pkey}`,
+                                        );
+                                        const isAllCategorySelected = categoryKeys.every((p) =>
+                                            values.permissions.includes(p),
+                                        );
 
-                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-                                                {Object.keys(permissions[key]?.keys ?? {}).map((pkey) => (
-                                                    <PermissionRow
-                                                        key={`permission_${key}.${pkey}`}
-                                                        permission={`${key}.${pkey}`}
-                                                        disabled={
-                                                            !canEditUser ||
-                                                            editablePermissions.indexOf(`${key}.${pkey}`) < 0
-                                                        }
-                                                    />
-                                                ))}
+                                        return (
+                                            <div
+                                                key={key}
+                                                className='group bg-white/[0.02] border border-white/[0.05] rounded-[2rem] overflow-hidden transition-all hover:border-white/10'
+                                            >
+                                                <div className='p-6 border-b border-white/[0.05] flex items-center justify-between bg-white/[0.01]'>
+                                                    <div className='flex items-center gap-4'>
+                                                        <div className='p-2.5 bg-zinc-900 rounded-2xl border border-white/5 text-blue-500'>
+                                                            <Icon width={20} height={20} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className='font-bold text-white capitalize'>{key}</h4>
+                                                            <p className='text-[11px] text-zinc-500 font-medium'>
+                                                                {permissions[key]?.description}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {canEditUser && (
+                                                        <button
+                                                            type='button'
+                                                            onClick={() => {
+                                                                if (isAllCategorySelected) {
+                                                                    setFieldValue(
+                                                                        'permissions',
+                                                                        values.permissions.filter(
+                                                                            (p) => !categoryKeys.includes(p),
+                                                                        ),
+                                                                    );
+                                                                } else {
+                                                                    setFieldValue(
+                                                                        'permissions',
+                                                                        Array.from(
+                                                                            new Set([
+                                                                                ...values.permissions,
+                                                                                ...categoryKeys.filter((p) =>
+                                                                                    editablePermissions.includes(p),
+                                                                                ),
+                                                                            ]),
+                                                                        ),
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className={clsx(
+                                                                'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border',
+                                                                isAllCategorySelected
+                                                                    ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                                                                    : 'bg-white/5 border-white/5 text-zinc-500 hover:text-zinc-300',
+                                                            )}
+                                                        >
+                                                            <Check
+                                                                width={14}
+                                                                height={14}
+                                                                className={clsx(!isAllCategorySelected && 'opacity-0')}
+                                                            />
+                                                            <span className='text-[10px] font-black uppercase tracking-widest'>
+                                                                Groupe
+                                                            </span>
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div className='p-6 grid grid-cols-1 md:grid-cols-2 gap-3'>
+                                                    {Object.keys(permissions[key]?.keys ?? {}).map((pkey) => (
+                                                        <PermissionRow
+                                                            key={`permission_${key}.${pkey}`}
+                                                            permission={`${key}.${pkey}`}
+                                                            disabled={
+                                                                !canEditUser ||
+                                                                !editablePermissions.includes(`${key}.${pkey}`)
+                                                            }
+                                                        />
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
+                        {/* Footer Fixe / Boutons */}
                         <Can action={subuser ? 'user.update' : 'user.create'}>
-                            <div className='flex gap-3 justify-end pt-4 border-t border-[#ffffff12]'>
-                                <ActionButton variant='secondary' type='button' onClick={onCancel}>
-                                    Cancel
+                            <div className='flex flex-col sm:flex-row gap-3 justify-end pt-8'>
+                                <ActionButton
+                                    variant='secondary'
+                                    type='button'
+                                    onClick={onCancel}
+                                    className='px-8 py-3 rounded-2xl border-white/5 hover:bg-white/5 font-bold text-sm'
+                                >
+                                    Annuler
                                 </ActionButton>
-                                <ActionButton variant='primary' type='submit' disabled={isSubmitting}>
-                                    {subuser ? 'Save Changes' : 'Invite User'}
+                                <ActionButton
+                                    variant='primary'
+                                    type='submit'
+                                    disabled={isSubmitting}
+                                    className='px-10 py-3 rounded-2xl shadow-lg shadow-blue-500/10 font-bold text-sm'
+                                >
+                                    {subuser ? 'Mettre à jour' : "Inviter l'utilisateur"}
                                 </ActionButton>
                             </div>
                         </Can>

@@ -1,5 +1,7 @@
 import { fileBitsToString } from '@/helpers';
 import { Form, Formik, FormikHelpers } from 'formik';
+import { LuShieldAlert } from 'react-icons/lu';
+import { object, string } from 'yup';
 
 import ActionButton from '@/components/elements/ActionButton';
 import Field from '@/components/elements/Field';
@@ -23,6 +25,12 @@ interface File {
 
 type OwnProps = RequiredModalProps & { files: File[] };
 
+const schema = object().shape({
+    mode: string()
+        .required('Un mode octal est requis.')
+        .matches(/^[0-7]{3,4}$/, 'Le mode doit être une valeur octale valide (ex: 755).'),
+});
+
 const ChmodFileModal = ({ files, ...props }: OwnProps) => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const { mutate } = useFileManagerSwr();
@@ -32,7 +40,6 @@ const ChmodFileModal = ({ files, ...props }: OwnProps) => {
 
     const submit = async ({ mode }: FormikValues, { setSubmitting }: FormikHelpers<FormikValues>) => {
         clearFlashes('files');
-
         await mutate(
             (data) =>
                 data!.map((f) =>
@@ -44,42 +51,76 @@ const ChmodFileModal = ({ files, ...props }: OwnProps) => {
         const data = files.map((f) => ({ file: f.file, mode: mode }));
 
         chmodFiles(uuid, directory, data)
-            .then((): Promise<any> => (files.length > 0 ? mutate() : Promise.resolve()))
+            .then(() => {
+                if (files.length > 0) {
+                    return mutate();
+                }
+            })
             .then(() => setSelectedFiles([]))
+            .then(() => props.onDismissed())
             .catch((error) => {
                 mutate();
                 setSubmitting(false);
                 clearAndAddHttpError({ key: 'files', error });
-            })
-            .then(() => props.onDismissed());
+            });
     };
 
     return (
-        <Formik onSubmit={submit} initialValues={{ mode: files.length > 1 ? '' : (files[0]?.mode ?? '') }}>
+        <Formik
+            onSubmit={submit}
+            validationSchema={schema}
+            initialValues={{ mode: files.length > 1 ? '' : (files[0]?.mode ?? '0644') }}
+        >
             {({ isSubmitting }) => (
                 <Modal
                     {...props}
-                    title='Configure permissions'
+                    title='Permissions du fichier'
                     dismissable={!isSubmitting}
                     showSpinnerOverlay={isSubmitting}
                 >
-                    <Form className={`w-full m-0`}>
-                        <div className={`flex flex-col`}>
-                            <div className={`w-full`}>
-                                <Field
-                                    type={'string'}
-                                    id={'file_mode'}
-                                    name={'mode'}
-                                    label={'File Mode'}
-                                    description={
-                                        'This is intended for advanced users. You may irreperably damage your server by changing file permissions.'
-                                    }
-                                    autoFocus
-                                />
+                    <Form className='w-full m-0'>
+                        <div className='space-y-6'>
+                            <div className='bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3'>
+                                <LuShieldAlert className='text-amber-500 w-6 h-6 shrink-0' />
+                                <p className='text-xs text-amber-200/80 leading-relaxed'>
+                                    <strong className='text-amber-500 block mb-1'>Utilisation avancée</strong>
+                                    Modifier les permissions peut rendre vos fichiers inaccessibles ou corrompre le
+                                    fonctionnement du serveur.
+                                </p>
                             </div>
-                            <div className={`flex justify-end w-full my-6`}>
-                                <ActionButton variant='primary' type='submit'>
-                                    Update
+
+                            <Field id='file_mode' name='mode' label='Mode Octal' placeholder='ex: 0755' autoFocus />
+
+                            <div className='grid grid-cols-3 gap-2 text-[12px] text-neutral-400 bg-neutral-900/50 p-3 rounded-lg border border-white/5'>
+                                <div className='flex flex-col gap-1'>
+                                    <span className='text-white font-bold border-b border-white/10 pb-1 mb-1'>
+                                        Lecture (4)
+                                    </span>
+                                    <span>7 = rwx</span>
+                                    <span>6 = rw-</span>
+                                </div>
+                                <div className='flex flex-col gap-1'>
+                                    <span className='text-white font-bold border-b border-white/10 pb-1 mb-1'>
+                                        Écriture (2)
+                                    </span>
+                                    <span>5 = r-x</span>
+                                    <span>4 = r--</span>
+                                </div>
+                                <div className='flex flex-col gap-1'>
+                                    <span className='text-white font-bold border-b border-white/10 pb-1 mb-1'>
+                                        Exécution (1)
+                                    </span>
+                                    <span>0 = ---</span>
+                                    <span>1 = --x</span>
+                                </div>
+                            </div>
+
+                            <div className='flex justify-end items-center gap-3 mb-4'>
+                                <ActionButton variant='secondary' onClick={props.onDismissed} disabled={isSubmitting}>
+                                    Annuler
+                                </ActionButton>
+                                <ActionButton variant='primary' type='submit' disabled={isSubmitting}>
+                                    Mettre à jour
                                 </ActionButton>
                             </div>
                         </div>

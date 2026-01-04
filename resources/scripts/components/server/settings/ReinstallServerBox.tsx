@@ -1,8 +1,10 @@
 import { Actions, useStoreActions } from 'easy-peasy';
 import { useEffect, useState } from 'react';
+import { LuLoader, LuRefreshCw, LuTriangleAlert } from 'react-icons/lu';
+
+// Icônes pour le feedback
 
 import ActionButton from '@/components/elements/ActionButton';
-import TitledGreyBox from '@/components/elements/TitledGreyBox';
 import { Dialog } from '@/components/elements/dialog';
 
 import { httpErrorToHuman } from '@/api/http';
@@ -25,51 +27,71 @@ const ReinstallServerBox = () => {
                 addFlash({
                     key: 'settings',
                     type: 'success',
-                    message: 'Your server has begun the reinstallation process.',
+                    message: 'Le processus de réinstallation a commencé.',
                 });
             })
             .catch((error) => {
                 console.error(error);
-
                 addFlash({ key: 'settings', type: 'error', message: httpErrorToHuman(error) });
             })
-            .then(() => {
+            .finally(() => {
                 setLoading(false);
                 setModalVisible(false);
             });
     };
 
     useEffect(() => {
-        clearFlashes();
+        return () => clearFlashes('settings');
     }, []);
 
     return (
-        <TitledGreyBox title={'Reinstall Server'}>
+        <div className='relative'>
             <Dialog.Confirm
                 open={modalVisible}
-                title={'Confirm server reinstallation'}
-                confirm={'Yes, reinstall server'}
+                title={'Réinstaller le serveur ?'}
+                confirm={'Oui, réinstaller'}
                 onClose={() => setModalVisible(false)}
                 onConfirmed={reinstall}
                 loading={loading}
             >
-                Your server will be stopped and some files may be deleted or modified during this process, are you sure
-                you wish to continue?
+                <div className='flex items-start gap-4'>
+                    <div className='p-2 bg-red-500/10 rounded-full shrink-0'>
+                        <LuTriangleAlert className='w-6 h-6 text-red-500' />
+                    </div>
+                    <div>
+                        Votre serveur sera arrêté et certains fichiers pourront être écrasés. Cette action est
+                        irréversible. Voulez-vous vraiment continuer ?
+                    </div>
+                </div>
             </Dialog.Confirm>
-            <p className={`text-sm`}>
-                Reinstalling your server will stop it, and then re-run the installation script that initially set it
-                up.&nbsp;
-                <strong className={`font-medium`}>
-                    Some files may be deleted or modified during this process, please back up your data before
-                    continuing.
-                </strong>
-            </p>
-            <div className={`mt-6 text-right`}>
-                <ActionButton variant='danger' onClick={() => setModalVisible(true)}>
-                    Reinstall Server
+
+            <div className='space-y-4'>
+                <div className='flex items-start gap-3'>
+                    <div className='mt-0.5 p-1.5 bg-amber-500/10 rounded-md shrink-0'>
+                        <LuTriangleAlert className='w-4 h-4 text-amber-500' />
+                    </div>
+                    <p className='text-xs text-neutral-400 leading-relaxed'>
+                        La réinstallation exécute à nouveau le script d&apos;installation initial.
+                        <span className='block mt-1 text-neutral-300 font-medium'>
+                            Pensez à sauvegarder vos données importantes avant de lancer l&apos;opération.
+                        </span>
+                    </p>
+                </div>
+
+                <ActionButton
+                    variant='danger'
+                    onClick={() => setModalVisible(true)}
+                    className='w-full group flex items-center justify-center gap-2 py-3 bg-red-600/10 border-red-500/20 hover:bg-red-600/20 hover:border-red-500/40 text-red-500 transition-all'
+                >
+                    {loading ? (
+                        <LuLoader className='w-4 h-4 animate-spin' />
+                    ) : (
+                        <LuRefreshCw className='w-4 h-4 group-hover:rotate-180 transition-transform duration-500' />
+                    )}
+                    <span>Réinstaller le serveur</span>
                 </ActionButton>
             </div>
-        </TitledGreyBox>
+        </div>
     );
 };
 

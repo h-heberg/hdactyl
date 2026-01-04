@@ -8,12 +8,14 @@ interface Props {
 const PageListContainer = ({ className, children }: Props) => {
     return (
         <div
-            style={{
-                background: 'radial-gradient(124.75% 124.75% at 50.01% -10.55%, rgb(16, 16, 16) 0%, rgb(4, 4, 4) 100%)',
-            }}
-            className={clsx(className, 'p-2 border-[1px] border-[#ffffff12] rounded-xl')}
+            className={clsx(
+                className,
+                'relative overflow-hidden p-1 border border-white/[0.05] rounded-[24px] bg-white/[0.01] backdrop-blur-sm',
+            )}
         >
-            <div className='flex h-full w-full flex-col gap-3 overflow-hidden rounded-lg'>{children}</div>
+            <div className='absolute -top-24 -left-24 w-48 h-48 bg-white/[0.02] blur-[60px] pointer-events-none' />
+
+            <div className='relative z-10 flex h-full w-full flex-col gap-1 overflow-hidden'>{children}</div>
         </div>
     );
 };
@@ -24,10 +26,12 @@ const PageListItem = ({ className, children }: Props) => {
         <div
             className={clsx(
                 className,
-                'bg-linear-to-b from-[#ffffff08] to-[#ffffff05] border-[1px] border-[#ffffff15] px-5 py-4 rounded-xl hover:border-[#ffffff20] transition-all flex items-center gap-3 flex-col sm:flex-row',
+                'relative group transition-all duration-300 bg-transparent hover:bg-white/[0.03] px-5 py-4 rounded-[20px] flex items-center gap-3 flex-col sm:flex-row border border-transparent hover:border-white/10',
             )}
         >
-            {children}
+            <div className='absolute bottom-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-white/[0.05] to-transparent group-last:hidden' />
+
+            <div className='relative z-10 w-full flex flex-col sm:flex-row items-center gap-3'>{children}</div>
         </div>
     );
 };

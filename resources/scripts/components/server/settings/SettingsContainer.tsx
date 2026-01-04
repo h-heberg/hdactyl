@@ -1,5 +1,8 @@
 import { useStoreState } from 'easy-peasy';
 import isEqual from 'react-fast-compare';
+import { LuExternalLink, LuShieldAlert } from 'react-icons/lu';
+
+// Icônes pour l'UI
 
 import FlashMessageRender from '@/components/FlashMessageRender';
 import ActionButton from '@/components/elements/ActionButton';
@@ -25,70 +28,110 @@ const SettingsContainer = () => {
     const sftp = ServerContext.useStoreState((state) => state.server.data!.sftpDetails, isEqual);
 
     return (
-        <ServerContentBlock title={'Settings'}>
+        <ServerContentBlock title={'Paramètres du serveur'}>
             <FlashMessageRender byKey={'settings'} />
-            <MainPageHeader direction='column' title={'Settings'}>
-                <p className='text-sm text-neutral-400 leading-relaxed'>
-                    Configure your server settings, manage SFTP access, and access debug information. Make changes to
-                    server name and reinstall when needed.
+
+            <MainPageHeader title={'Gestion du serveur'}>
+                <p className='text-sm text-neutral-400 max-w-2xl'>
+                    Gérez les paramètres avancés de votre instance. Modifiez l&apos;identité du serveur, accédez aux
+                    protocoles de transfert de fichiers ou réinitialisez votre environnement.
                 </p>
             </MainPageHeader>
-            <Can action={'settings.rename'}>
-                <div className={`mb-6 md:mb-10`}>
-                    <RenameServerBox />
-                </div>
-            </Can>
 
-            <div className='w-full h-full flex flex-col gap-8'>
-                <Can action={'settings.reinstall'}>
-                    <ReinstallServerBox />
-                </Can>
-                <TitledGreyBox title={'Debug Information'}>
-                    <div className={`flex items-center justify-between text-sm`}>
-                        <p>Node</p>
-                        <code className={`font-mono bg-zinc-900 rounded-sm py-1 px-2`}>{node}</code>
-                    </div>
-                    <CopyOnClick text={uuid}>
-                        <div className={`flex items-center justify-between mt-2 text-sm`}>
-                            <p>Server ID</p>
-                            <code className={`font-mono bg-zinc-900 rounded-sm py-1 px-2`}>{uuid}</code>
+            <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8'>
+                <div className='lg:col-span-2 space-y-6'>
+                    <Can action={'settings.rename'}>
+                        <div className='bg-neutral-900/50 border border-neutral-800 rounded-xl p-1'>
+                            <RenameServerBox />
                         </div>
-                    </CopyOnClick>
-                </TitledGreyBox>
-                <Can action={'file.sftp'}>
-                    <TitledGreyBox title={'SFTP Details'} className={`mb-6 md:mb-10`}>
-                        <div className={`flex items-center justify-between text-sm`}>
-                            <Label>Server Address</Label>
-                            <CopyOnClick text={`sftp://${ip(sftp.ip)}:${sftp.port}`}>
-                                <code
-                                    className={`font-mono bg-zinc-900 rounded-sm py-1 px-2`}
-                                >{`sftp://${ip(sftp.ip)}:${sftp.port}`}</code>
-                            </CopyOnClick>
-                        </div>
-                        <div className={`mt-2 flex items-center justify-between text-sm`}>
-                            <Label>Username</Label>
-                            <CopyOnClick text={`${username}.${id}`}>
-                                <code
-                                    className={`font-mono bg-zinc-900 rounded-sm py-1 px-2`}
-                                >{`${username}.${id}`}</code>
-                            </CopyOnClick>
-                        </div>
-                        <div className={`mt-6 flex items-center`}>
-                            <div className={`flex-1`}>
-                                <div className={`border-l-4 border-brand p-3`}>
-                                    <p className={`text-xs text-zinc-200`}>
-                                        Your SFTP password is the same as the password you use to access this panel.
-                                    </p>
+                    </Can>
+
+                    <Can action={'file.sftp'}>
+                        <TitledGreyBox title={'Accès SFTP'}>
+                            <div className='space-y-4'>
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                    <div className='bg-black/20 p-3 rounded-lg border border-white/5'>
+                                        <Label className='text-xs uppercase tracking-wider text-neutral-500'>
+                                            Hostname / IP
+                                        </Label>
+                                        <CopyOnClick text={`${ip(sftp.ip)}`}>
+                                            <p className='font-mono text-sm text-neutral-200 mt-1 truncate'>
+                                                {ip(sftp.ip)}
+                                            </p>
+                                        </CopyOnClick>
+                                        <p className='text-[10px] text-neutral-600 mt-1'>Port: {sftp.port}</p>
+                                    </div>
+
+                                    <div className='bg-black/20 p-3 rounded-lg border border-white/5'>
+                                        <Label className='text-xs uppercase tracking-wider text-neutral-500'>
+                                            Username
+                                        </Label>
+                                        <CopyOnClick text={`${username}.${id}`}>
+                                            <p className='font-mono text-sm text-neutral-200 mt-1 truncate'>{`${username}.${id}`}</p>
+                                        </CopyOnClick>
+                                    </div>
+                                </div>
+
+                                <div className='flex flex-col sm:flex-row items-center gap-4 bg-brand/5 border border-brand/10 p-4 rounded-xl'>
+                                    <div className='flex-1 text-xs text-neutral-400 leading-relaxed'>
+                                        <span className='text-brand font-medium'>Tip:</span> Your SFTP password is the
+                                        same as your panel password. Use a client like FileZilla or WinSCP.
+                                    </div>
+                                    <a
+                                        href={`sftp://${username}.${id}@${ip(sftp.ip)}:${sftp.port}`}
+                                        className='w-full sm:w-auto'
+                                    >
+                                        <ActionButton
+                                            variant='secondary'
+                                            className='w-full flex items-center justify-center gap-2'
+                                        >
+                                            <LuExternalLink className='w-3 h-3' /> Launch Client
+                                        </ActionButton>
+                                    </a>
                                 </div>
                             </div>
-                            <div className={`ml-4`}>
-                                <a href={`sftp://${username}.${id}@${ip(sftp.ip)}:${sftp.port}`}>
-                                    <ActionButton variant='secondary'>Launch SFTP</ActionButton>
-                                </a>
+                        </TitledGreyBox>
+                    </Can>
+                </div>
+
+                <div className='space-y-6'>
+                    {/* Debug Info */}
+                    <TitledGreyBox title={'Informations Système'}>
+                        <div className='space-y-4'>
+                            <div className='flex justify-between items-center py-2 border-b border-white/5'>
+                                <span className='text-sm text-neutral-500'>Node</span>
+                                <span className='text-sm font-mono text-neutral-300'>{node}</span>
+                            </div>
+                            <div className='py-2'>
+                                <span className='text-sm text-neutral-500 block mb-2'>Server UUID</span>
+                                <CopyOnClick text={uuid}>
+                                    <code className='block w-full text-[10px] font-mono bg-black/40 p-2 rounded border border-white/5 text-neutral-400 break-all overflow-hidden italic'>
+                                        {uuid}
+                                    </code>
+                                </CopyOnClick>
                             </div>
                         </div>
                     </TitledGreyBox>
-                </Can>
+
+                    {/* Danger Zone */}
+                    <Can action={'settings.reinstall'}>
+                        <div className='rounded-xl border border-red-900/30 bg-red-950/10 overflow-hidden'>
+                            <div className='p-4 border-b border-red-900/20 bg-red-900/5 flex items-center gap-2'>
+                                <LuShieldAlert className='w-4 h-4 text-red-500' />
+                                <span className='text-sm font-semibold text-red-500 uppercase tracking-tight'>
+                                    Danger Zone
+                                </span>
+                            </div>
+                            <div className='p-4'>
+                                <p className='text-xs text-neutral-500 mb-4'>
+                                    La réinstallation supprimera certains fichiers et réinitialisera les scripts de
+                                    démarrage.
+                                </p>
+                                <ReinstallServerBox />
+                            </div>
+                        </div>
+                    </Can>
+                </div>
             </div>
         </ServerContentBlock>
     );

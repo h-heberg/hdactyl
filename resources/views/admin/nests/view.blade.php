@@ -15,7 +15,7 @@
 
 @section('content')
 <div class="row">
-    <form action="{{ route('admin.nests.view', $nest->id) }}" method="POST">
+    <form action="{{ route('admin.nests.view', $nest->id) }}" method="POST" enctype="multipart/form-data">
         <div class="col-md-6">
             <div class="box">
                 <div class="box-body">
@@ -32,6 +32,23 @@
                             <textarea name="description" class="form-control" rows="7">{{ $nest->description }}</textarea>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label class="control-label">Image de présentation</label>
+                        <div>
+                            @if($nest->image)
+                                <div class="mb-3" style="margin-bottom: 15px;">
+                                    <img src="{{ asset('storage/' . $nest->image) }}" alt="{{ $nest->name }}" style="max-width: 300px; max-height: 200px; border-radius: 5px; border: 1px solid #ddd; padding: 5px;">
+                                    <div style="margin-top: 10px;">
+                                        <label>
+                                            <input type="checkbox" name="remove_image" value="1"> Supprimer l'image actuelle
+                                        </label>
+                                    </div>
+                                </div>
+                            @endif
+                            <input type="file" name="image" class="form-control" accept="image/*">
+                            <p class="text-muted"><small>Upload an image to represent this nest. Supported formats: JPEG, PNG, JPG, GIF, SVG, WebP (max 2MB).</small></p>
+                        </div>
+                    </div>
                 </div>
                 <div class="box-footer">
                     {!! csrf_field() !!}
@@ -40,34 +57,34 @@
                 </div>
             </div>
         </div>
-    </form>
-    <div class="col-md-6">
-        <div class="box">
-            <div class="box-body">
-                <div class="form-group">
-                    <label class="control-label">Nest ID</label>
-                    <div>
-                        <input type="text" readonly class="form-control" value="{{ $nest->id }}" />
-                        <p class="text-muted small">A unique ID used for identification of this nest internally and through the API.</p>
+        <div class="col-md-6">
+            <div class="box">
+                <div class="box-body">
+                    <div class="form-group">
+                        <label class="control-label">Nest ID</label>
+                        <div>
+                            <input type="text" readonly class="form-control" value="{{ $nest->id }}" />
+                            <p class="text-muted small">A unique ID used for identification of this nest internally and through the API.</p>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label">Author</label>
-                    <div>
-                        <input type="text" readonly class="form-control" value="{{ $nest->author }}" />
-                        <p class="text-muted small">The author of this service option. Please direct questions and issues to them unless this is an official option authored by <code>support@pterodactyl.io</code>.</p>
+                    <div class="form-group">
+                        <label class="control-label">Author</label>
+                        <div>
+                            <input type="text" readonly class="form-control" value="{{ $nest->author }}" />
+                            <p class="text-muted small">The author of this service option. Please direct questions and issues to them unless this is an official option authored by <code>support@pterodactyl.io</code>.</p>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label class="control-label">UUID</label>
-                    <div>
-                        <input type="text" readonly class="form-control" value="{{ $nest->uuid }}" />
-                        <p class="text-muted small">A UUID that all servers using this option are assigned for identification purposes.</p>
+                    <div class="form-group">
+                        <label class="control-label">UUID</label>
+                        <div>
+                            <input type="text" readonly class="form-control" value="{{ $nest->uuid }}" />
+                            <p class="text-muted small">A UUID that all servers using this option are assigned for identification purposes.</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 <div class="row">
     <div class="col-xs-12">

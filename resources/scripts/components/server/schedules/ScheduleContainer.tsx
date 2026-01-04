@@ -82,7 +82,7 @@ function ScheduleContainer() {
                             </div>
                         </div>
                     ) : (
-                        <PageListContainer data-pyro-schedules>
+                        <PageListContainer>
                             {schedules.map((schedule) => (
                                 <NavLink key={schedule.id} to={`${schedule.id}`} end>
                                     <PageListItem>

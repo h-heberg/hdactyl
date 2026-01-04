@@ -6,7 +6,7 @@ RAM  = (ENV["VM_RAM"]  || "8192").to_i
 CPUS = (ENV["VM_CPUS"] || "8").to_i
 
 SPECIAL_PORTS = [
-  3000,  # pyrodactyl web ui
+  3000,  # hdactyl web ui
   3306,  # database
   8080,  # elytra daemon
   8081,  # phpmyadmin

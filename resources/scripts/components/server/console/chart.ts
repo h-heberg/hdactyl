@@ -18,11 +18,31 @@ ChartJS.register(LineElement, PointElement, Filler, LinearScale);
 
 const options: ChartOptions<'line'> = {
     maintainAspectRatio: false,
-    animation: false,
+    animation: {
+        duration: 500,
+        easing: 'easeOutQuart',
+    },
     plugins: {
-        legend: { display: false },
+        legend: { display: true },
         title: { display: false },
-        tooltip: { enabled: false },
+        tooltip: {
+            enabled: true,
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(9, 9, 11, 0.8)', // Zinc-950
+            titleColor: '#71717a', // Zinc-400
+            bodyColor: '#ffffff',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 12,
+            displayColors: true,
+            usePointStyle: true,
+        },
+    },
+    interaction: {
+        intersect: false,
+        mode: 'index',
     },
     layout: {
         padding: 0,
@@ -43,7 +63,8 @@ const options: ChartOptions<'line'> = {
             min: 0,
             type: 'linear',
             grid: {
-                display: false,
+                display: true,
+                color: 'rgba(255, 255, 255, 0.03)', // Grille très subtile pour aider la lecture
             },
             ticks: {
                 display: true,
@@ -58,9 +79,13 @@ const options: ChartOptions<'line'> = {
     elements: {
         point: {
             radius: 0,
+            hoverRadius: 5,
+            hoverBackgroundColor: '#ffffff',
+            hoverBorderWidth: 2,
         },
         line: {
-            tension: 0.15,
+            tension: 0.4,
+            borderWidth: 2,
         },
     },
 };
@@ -87,8 +112,8 @@ function getEmptyData(label: string, sets = 1, callback?: ChartDatasetCallback |
                         fill: true,
                         label,
                         data: Array(20).fill(-5),
-                        borderColor: '#fa4e49',
-                        backgroundColor: hexToRgba('#fa4e49', 0.09),
+                        borderColor: '#3372E3',
+                        backgroundColor: hexToRgba('#3372E3', 0.09),
                     },
                     index,
                 ),

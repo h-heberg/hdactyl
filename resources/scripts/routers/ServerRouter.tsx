@@ -1,22 +1,25 @@
 'use client';
 
 import {
-    Box,
+    ArrowRightFromSquare,
     BranchesDown,
+    ChevronDown,
     ClockArrowRotateLeft,
     CloudArrowUpIn,
     Database,
-    Ellipsis,
     FolderOpen,
     Gear,
     House,
+    Lock,
     PencilToLine,
     Persons,
     Terminal,
 } from '@gravity-ui/icons';
+import md5 from 'blueimp-md5';
 import { useStoreState } from 'easy-peasy';
-import React, { Fragment, Suspense, useEffect, useRef, useState } from 'react';
-import { NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Fragment, Suspense, useEffect, useRef, useState } from 'react';
+import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import useSWR from 'swr';
 
 import routes from '@/routers/routes';
 
@@ -25,138 +28,49 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/elements/DropdownMenu';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
+import Logo from '@/components/elements/HLogo';
 import MainSidebar from '@/components/elements/MainSidebar';
 import MainWrapper from '@/components/elements/MainWrapper';
 import { ServerMobileMenu } from '@/components/elements/MobileFullScreenMenu';
 import MobileTopBar from '@/components/elements/MobileTopBar';
-import ModrinthLogo from '@/components/elements/ModrinthLogo';
 import PermissionRoute from '@/components/elements/PermissionRoute';
-import Logo from '@/components/elements/PyroLogo';
 import { NotFound, ServerError } from '@/components/elements/ScreenBlock';
 import CommandMenu from '@/components/elements/commandk/CmdK';
 import ConflictStateRenderer from '@/components/server/ConflictStateRenderer';
 import InstallListener from '@/components/server/InstallListener';
 import TransferListener from '@/components/server/TransferListener';
 import WebsocketHandler from '@/components/server/WebsocketHandler';
-import StatBlock from '@/components/server/console/StatBlock';
 
-import { httpErrorToHuman } from '@/api/http';
+import getServers from '@/api/getServers';
+import { PaginatedResult, httpErrorToHuman } from '@/api/http';
 import http from '@/api/http';
-import { SubdomainInfo, getSubdomainInfo } from '@/api/server/network/subdomain';
+import { Server } from '@/api/server/getServer';
+import { getSubdomainInfo } from '@/api/server/network/subdomain';
 
 import { ServerContext } from '@/state/server';
-
-// Sidebar item components that check both permissions and feature limits
-const DatabasesSidebarItem = React.forwardRef<HTMLAnchorElement, { id: string; onClick: () => void }>(
-    ({ id, onClick }, ref) => {
-        const databaseLimit = ServerContext.useStoreState((state) => state.server.data?.featureLimits.databases);
-
-        // Hide if databases are disabled (limit is 0)
-        if (databaseLimit === 0) return null;
-
-        return (
-            <Can action={'database.*'} matchAny>
-                <NavLink
-                    className='flex flex-row items-center transition-colors duration-200 hover:bg-white/10 rounded-md'
-                    ref={ref}
-                    to={`/server/${id}/databases`}
-                    onClick={onClick}
-                    end
-                >
-                    <Database width={22} height={22} fill='currentColor' />
-                    <p>Databases</p>
-                </NavLink>
-            </Can>
-        );
-    },
-);
-DatabasesSidebarItem.displayName = 'DatabasesSidebarItem';
-
-const BackupsSidebarItem = React.forwardRef<HTMLAnchorElement, { id: string; onClick: () => void }>(
-    ({ id, onClick }, ref) => {
-        const backupLimit = ServerContext.useStoreState((state) => state.server.data?.featureLimits.backups);
-
-        // Hide if backups are disabled (limit is 0)
-        if (backupLimit === 0) return null;
-
-        return (
-            <Can action={'backup.*'} matchAny>
-                <NavLink
-                    className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                    ref={ref}
-                    to={`/server/${id}/backups`}
-                    onClick={onClick}
-                    end
-                >
-                    <CloudArrowUpIn width={22} height={22} fill='currentColor' />
-                    <p>Backups</p>
-                </NavLink>
-            </Can>
-        );
-    },
-);
-BackupsSidebarItem.displayName = 'BackupsSidebarItem';
-
-const NetworkingSidebarItem = React.forwardRef<HTMLAnchorElement, { id: string; onClick: () => void }>(
-    ({ id, onClick }, ref) => {
-        const [subdomainSupported, setSubdomainSupported] = useState(false);
-        const allocationLimit = ServerContext.useStoreState(
-            (state) => state.server.data?.featureLimits.allocations ?? 0,
-        );
-        const uuid = ServerContext.useStoreState((state) => state.server.data?.uuid);
-
-        useEffect(() => {
-            const checkSubdomainSupport = async () => {
-                try {
-                    if (uuid) {
-                        const data = await getSubdomainInfo(uuid);
-                        setSubdomainSupported(data.supported);
-                    }
-                } catch (error) {
-                    setSubdomainSupported(false);
-                }
-            };
-
-            checkSubdomainSupport();
-        }, [uuid]);
-
-        // Show if either allocations are available OR subdomains are supported
-        if (allocationLimit === 0 && !subdomainSupported) return null;
-
-        return (
-            <Can action={'allocation.*'} matchAny>
-                <NavLink
-                    className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                    ref={ref}
-                    to={`/server/${id}/network`}
-                    onClick={onClick}
-                    end
-                >
-                    <BranchesDown width={22} height={22} fill='currentColor' />
-                    <p>Networking</p>
-                </NavLink>
-            </Can>
-        );
-    },
-);
-NetworkingSidebarItem.displayName = 'NetworkingSidebarItem';
-
-/**
- * Creates a swipe event from an X and Y location at start and current co-ords.
- * Important to create a shared, but not public, space for methods.
- *
- * @class
- */
 
 const ServerRouter = () => {
     const params = useParams<'id'>();
     const location = useLocation();
+    const navigate = useNavigate();
 
-    const rootAdmin = useStoreState((state) => state.user.data!.rootAdmin);
+    // Global User State
+    const user = useStoreState((state) => state.user.data);
+    const rootAdmin = user?.rootAdmin;
+
+    // Fetch all servers for the dropdown
+    const { data: servers } = useSWR<PaginatedResult<Server>>(
+        ['/api/client/servers', 'all'],
+        () => getServers({ type: 'all' }),
+        { revalidateOnFocus: false },
+    );
+
+    console.log(servers);
+
+    // Server State
     const [error, setError] = useState('');
     const [subdomainSupported, setSubdomainSupported] = useState(false);
 
@@ -167,75 +81,14 @@ const ServerRouter = () => {
     const serverName = ServerContext.useStoreState((state) => state.server.data?.name);
     const getServer = ServerContext.useStoreActions((actions) => actions.server.getServer);
     const clearServerState = ServerContext.useStoreActions((actions) => actions.clearServerState);
-    const egg_id = ServerContext.useStoreState((state) => state.server.data?.egg);
+
     const databaseLimit = ServerContext.useStoreState((state) => state.server.data?.featureLimits.databases);
     const backupLimit = ServerContext.useStoreState((state) => state.server.data?.featureLimits.backups);
     const allocationLimit = ServerContext.useStoreState((state) => state.server.data?.featureLimits.allocations);
 
-    // Mobile menu state
     const [isMobileMenuVisible, setMobileMenuVisible] = useState(false);
 
-    const toggleMobileMenu = () => {
-        setMobileMenuVisible(!isMobileMenuVisible);
-    };
-
-    const closeMobileMenu = () => {
-        setMobileMenuVisible(false);
-    };
-
-    const onTriggerLogout = () => {
-        http.post('/auth/logout').finally(() => {
-            // @ts-expect-error this is valid
-            window.location = '/';
-        });
-    };
-
-    const onSelectManageServer = () => {
-        window.open(`/admin/servers/view/${serverId}`);
-    };
-
-    useEffect(
-        () => () => {
-            clearServerState();
-        },
-        [],
-    );
-
-    useEffect(() => {
-        setError('');
-
-        if (params.id === undefined) {
-            return;
-        }
-
-        getServer(params.id).catch((error) => {
-            console.error(error);
-            setError(httpErrorToHuman(error));
-        });
-
-        return () => {
-            clearServerState();
-        };
-    }, [params.id]);
-
-    useEffect(() => {
-        const checkSubdomainSupport = async () => {
-            try {
-                if (uuid) {
-                    const data = await getSubdomainInfo(uuid);
-                    setSubdomainSupported(data.supported);
-                }
-            } catch (error) {
-                setSubdomainSupported(false);
-            }
-        };
-
-        if (uuid) {
-            checkSubdomainSupport();
-        }
-    }, [uuid]);
-
-    // Define refs for navigation buttons.
+    // Navigation Refs
     const NavigationHome = useRef(null);
     const NavigationFiles = useRef(null);
     const NavigationDatabases = useRef(null);
@@ -246,71 +99,37 @@ const ServerRouter = () => {
     const NavigationSchedules = useRef(null);
     const NavigationSettings = useRef(null);
     const NavigationActivity = useRef(null);
-    const NavigationMod = useRef(null);
     const NavigationShell = useRef(null);
+    const NavigationApi = useRef(null);
 
-    const calculateTop = (pathname: string) => {
-        if (!id) return '0';
+    // Handlers
+    const toggleMobileMenu = () => setMobileMenuVisible(!isMobileMenuVisible);
+    const closeMobileMenu = () => setMobileMenuVisible(false);
 
-        // Get currents of navigation refs.
-        const ButtonHome = NavigationHome.current;
-        const ButtonFiles = NavigationFiles.current;
-        const ButtonDatabases = NavigationDatabases.current;
-        const ButtonBackups = NavigationBackups.current;
-        const ButtonNetworking = NavigationNetworking.current;
-        const ButtonUsers = NavigationUsers.current;
-        const ButtonStartup = NavigationStartup.current;
-        const ButtonSchedules = NavigationSchedules.current;
-        const ButtonSettings = NavigationSettings.current;
-        const ButtonShell = NavigationShell.current;
-        const ButtonActivity = NavigationActivity.current;
-        const ButtonMod = NavigationMod.current;
-
-        // Perfectly center the page highlighter with simple math.
-        // Height of navigation links (56) minus highlight height (40) equals 16. 16 devided by 2 is 8.
-        const HighlightOffset: number = 8;
-
-        if (pathname.endsWith(`/server/${id}`) && ButtonHome != null)
-            return (ButtonHome as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/files`) && ButtonFiles != null)
-            return (ButtonFiles as any).offsetTop + HighlightOffset;
-        if (new RegExp(`^/server/${id}/files(/(new|edit).*)?$`).test(pathname) && ButtonFiles != null)
-            return (ButtonFiles as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/databases`) && ButtonDatabases != null)
-            return (ButtonDatabases as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/backups`) && ButtonBackups != null)
-            return (ButtonBackups as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/network`) && ButtonNetworking != null)
-            return (ButtonNetworking as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/users`) && ButtonUsers != null)
-            return (ButtonUsers as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/startup`) && ButtonStartup != null)
-            return (ButtonStartup as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/schedules`) && ButtonSchedules != null)
-            return (ButtonSchedules as any).offsetTop + HighlightOffset;
-        if (new RegExp(`^/server/${id}/schedules/\\d+$`).test(pathname) && ButtonSchedules != null)
-            return (ButtonSchedules as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/settings`) && ButtonSettings != null)
-            return (ButtonSettings as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/shell`) && ButtonShell != null)
-            return (ButtonShell as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/activity`) && ButtonActivity != null)
-            return (ButtonActivity as any).offsetTop + HighlightOffset;
-        if (pathname.endsWith(`/server/${id}/mods`) && ButtonMod != null)
-            return (ButtonMod as any).offsetTop + HighlightOffset;
-
-        return '0';
+    const onTriggerLogout = () => {
+        http.post('/auth/logout').finally(() => {
+            window.location.href = '/';
+        });
     };
 
-    const top = calculateTop(location.pathname);
-
-    const [height, setHeight] = useState('40px');
+    // Effects
+    useEffect(() => {
+        setError('');
+        if (params.id) {
+            getServer(params.id).catch((error) => {
+                setError(httpErrorToHuman(error));
+            });
+        }
+        return () => clearServerState();
+    }, [params.id]);
 
     useEffect(() => {
-        setHeight('34px');
-        const timeoutId = setTimeout(() => setHeight('40px'), 200);
-        return () => clearTimeout(timeoutId);
-    }, [top]);
+        if (uuid) {
+            getSubdomainInfo(uuid)
+                .then((data) => setSubdomainSupported(data.supported))
+                .catch(() => setSubdomainSupported(false));
+        }
+    }, [uuid]);
 
     return (
         <Fragment key={'server-router'}>
@@ -320,15 +139,13 @@ const ServerRouter = () => {
                 ) : null
             ) : (
                 <>
-                    {/* Mobile Top Bar */}
                     <MobileTopBar
                         onMenuToggle={toggleMobileMenu}
                         onTriggerLogout={onTriggerLogout}
-                        onSelectAdminPanel={onSelectManageServer}
+                        onSelectAdminPanel={() => (window.location.href = '/admin/servers/view/' + serverId)}
                         rootAdmin={rootAdmin}
                     />
 
-                    {/* Mobile Full Screen Menu */}
                     <ServerMobileMenu
                         isVisible={isMobileMenuVisible}
                         onClose={closeMobileMenu}
@@ -340,174 +157,218 @@ const ServerRouter = () => {
                     />
 
                     <div className='flex flex-row w-full lg:pt-0 pt-16'>
-                        {/* Desktop Sidebar */}
-                        <MainSidebar className='hidden lg:flex lg:relative lg:shrink-0 w-[300px] bg-[#1a1a1a] flex flex-col h-screen'>
-                            <div
-                                className='absolute bg-brand w-[3px] h-10 left-0 rounded-full pointer-events-none'
-                                style={{
-                                    top,
-                                    height,
-                                    opacity: top === '0' ? 0 : 1,
-                                    transition:
-                                        'linear(0,0.006,0.025 2.8%,0.101 6.1%,0.539 18.9%,0.721 25.3%,0.849 31.5%,0.937 38.1%,0.968 41.8%,0.991 45.7%,1.006 50.1%,1.015 55%,1.017 63.9%,1.001) 390ms',
-                                }}
-                            />
-                            <div
-                                className='absolute bg-zinc-900 w-12 h-10 blur-2xl left-0 rounded-full pointer-events-none'
-                                style={{
-                                    top,
-                                    opacity: top === '0' ? 0 : 0.5,
-                                    transition: 'all 300ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                }}
-                            />
-                            <div className='flex flex-row items-center justify-between h-8'>
-                                <NavLink to={'/'} className='flex shrink-0 h-8 w-fit'>
-                                    <Logo uniqueId='server-desktop-sidebar' />
+                        <MainSidebar className='hidden lg:flex lg:relative lg:shrink-0'>
+                            <div className='flex flex-row items-center justify-center h-8'>
+                                <NavLink to={'/'} className='flex shrink-0 h-12 w-fit items-center'>
+                                    <Logo className='h-12' />
                                 </NavLink>
+                            </div>
+
+                            <div aria-hidden className='mt-8 mb-4 bg-[#ffffff33] min-h-[1px] w-full'></div>
+
+                            <div className='mb-4 px-1'>
                                 <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button className='w-10 h-10 flex items-center justify-center rounded-md text-white hover:bg-[#ffffff11] p-2 select-none cursor-pointer'>
-                                            <Ellipsis fill='currentColor' width={26} height={22} />
-                                        </button>
+                                    <DropdownMenuTrigger className='flex items-center justify-between w-full p-3 bg-[#ffffff09] border-[1px] border-[#ffffff11] rounded-xl text-sm transition-all hover:bg-[#ffffff0f] focus:outline-none group'>
+                                        <div className='flex flex-col items-start overflow-hidden text-left'>
+                                            <span className='text-[10px] uppercase font-bold text-white/30 tracking-wider'>
+                                                Serveur actuel
+                                            </span>
+                                            <span className='w-full truncate font-semibold text-white group-hover:text-brand transition-colors'>
+                                                {serverName}
+                                            </span>
+                                        </div>
+                                        <ChevronDown
+                                            className='ml-2 text-white/30 group-hover:text-white transition-colors'
+                                            width={16}
+                                            height={16}
+                                        />
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className='z-99999 select-none relative' sideOffset={8}>
-                                        {rootAdmin && (
-                                            <DropdownMenuItem onSelect={onSelectManageServer}>
-                                                Manage Server
-                                                <span className='ml-2 z-10 rounded-full bg-brand px-2 py-1 text-xs select-none'>
-                                                    Staff
-                                                </span>
-                                            </DropdownMenuItem>
-                                        )}
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onSelect={onTriggerLogout}>Log Out</DropdownMenuItem>
+                                    <DropdownMenuContent
+                                        align='start'
+                                        className='w-[240px] bg-[#111214] border-[#ffffff11] text-white'
+                                    >
+                                        <div className='p-2 text-[11px] font-bold text-white/30 uppercase tracking-widest'>
+                                            Mes Serveurs
+                                        </div>
+                                        <div className='max-h-[300px] overflow-y-auto custom-scrollbar'>
+                                            {servers?.items.map((server) => (
+                                                <DropdownMenuItem
+                                                    key={server.uuid}
+                                                    onClick={() => navigate(`/server/${server.id}`)}
+                                                    className={`flex flex-col items-start p-3 cursor-pointer rounded-lg m-1 transition-colors ${
+                                                        server.id === id
+                                                            ? 'bg-brand/10 border-brand/20'
+                                                            : 'hover:bg-white/5'
+                                                    }`}
+                                                >
+                                                    <span
+                                                        className={`font-medium ${server.id === id ? 'text-brand' : 'text-white'}`}
+                                                    >
+                                                        {server.name}
+                                                    </span>
+                                                    <span className='text-[11px] text-white/40 group-hover:text-white/60'>
+                                                        {server.owner ? 'Propriétaire' : 'Collaborateur'}
+                                                    </span>
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </div>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
-                            <div aria-hidden className='mt-8 mb-4 bg-[#ffffff33] min-h-[1px] w-6'></div>
-                            <ul
-                                data-pyro-subnav-routes-wrapper=''
-                                className='pyro-subnav-routes-wrapper flex-grow overflow-y-auto'
-                            >
-                                {/* lord forgive me for hardcoding this */}
+
+                            <ul className='hh-subnav-routes-wrapper flex-grow overflow-y-auto'>
+                                <li className='sidebar-category'>Général</li>
                                 <NavLink
-                                    className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
                                     ref={NavigationHome}
                                     to={`/server/${id}`}
                                     end
+                                    className='flex flex-row items-center'
                                 >
                                     <House width={22} height={22} fill='currentColor' />
-                                    <p>Home</p>
+                                    <p>Console</p>
                                 </NavLink>
-                                <>
-                                    <Can action={'file.*'} matchAny>
-                                        <NavLink
-                                            className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                                            ref={NavigationFiles}
-                                            to={`/server/${id}/files`}
-                                        >
-                                            <FolderOpen width={22} height={22} fill='currentColor' />
-                                            <p>Files</p>
-                                        </NavLink>
-                                    </Can>
-                                    <DatabasesSidebarItem id={id} ref={NavigationDatabases} onClick={() => {}} />
-                                    <BackupsSidebarItem id={id} ref={NavigationBackups} onClick={() => {}} />
-                                    <NetworkingSidebarItem id={id} ref={NavigationNetworking} onClick={() => {}} />
-                                    <Can action={'user.*'} matchAny>
-                                        <NavLink
-                                            className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                                            ref={NavigationUsers}
-                                            to={`/server/${id}/users`}
-                                            end
-                                        >
-                                            <Persons width={22} height={22} fill='currentColor' />
-                                            <p>Users</p>
-                                        </NavLink>
-                                    </Can>
-                                    <Can
-                                        action={[
-                                            'startup.read',
-                                            'startup.update',
-                                            'startup.command',
-                                            'startup.docker-image',
-                                        ]}
-                                        matchAny
-                                    >
-                                        <NavLink
-                                            className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                                            ref={NavigationStartup}
-                                            to={`/server/${id}/startup`}
-                                            end
-                                        >
-                                            <Terminal width={22} height={22} fill='currentColor' />
-                                            <p>Startup</p>
-                                        </NavLink>
-                                    </Can>
-                                    <Can action={'schedule.*'} matchAny>
-                                        <NavLink
-                                            className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                                            ref={NavigationSchedules}
-                                            to={`/server/${id}/schedules`}
-                                        >
-                                            <ClockArrowRotateLeft width={22} height={22} fill='currentColor' />
-                                            <p>Schedules</p>
-                                        </NavLink>
-                                    </Can>
-                                    <Can action={['settings.*', 'file.sftp']} matchAny>
-                                        <NavLink
-                                            className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                                            ref={NavigationSettings}
-                                            to={`/server/${id}/settings`}
-                                            end
-                                        >
-                                            <Gear width={22} height={22} fill='currentColor' />
-                                            <p>Settings</p>
-                                        </NavLink>
-                                    </Can>
-                                    <Can action={['activity.*', 'activity.read']} matchAny>
-                                        <NavLink
-                                            className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                                            ref={NavigationActivity}
-                                            to={`/server/${id}/activity`}
-                                            end
-                                        >
-                                            <PencilToLine width={22} height={22} fill='currentColor' />
-                                            <p>Activity</p>
-                                        </NavLink>
-                                    </Can>
-                                    {/* {/* TODO: finish modrinth support *\} */}
-                                    {/* <Can action={['modrinth.*', 'modrinth.download']} matchAny> */}
-                                    {/*     <NavLink */}
-                                    {/*         className='flex flex-row items-center sm:hidden md:show' */}
-                                    {/*         ref={NavigationMod} */}
-                                    {/*         to={`/server/${id}/mods`} */}
-                                    {/*         end */}
-                                    {/*     > */}
-                                    {/*         <ModrinthLogo /> */}
-                                    {/*         <p>Mods/Plugins</p> */}
-                                    {/*     </NavLink> */}
-                                    {/* </Can> */}
-                                </>
-                                <Can action={'startup.software'}>
+
+                                <li className='sidebar-category'>Gestion</li>
+                                <Can action={'file.*'} matchAny>
                                     <NavLink
-                                        className='flex flex-row items-center transition-colors duration-200 hover:bg-[#ffffff11] rounded-md'
-                                        ref={NavigationShell}
-                                        to={`/server/${id}/shell`}
-                                        end
+                                        ref={NavigationFiles}
+                                        to={`/server/${id}/files`}
+                                        className='flex flex-row items-center'
                                     >
-                                        <Box width={22} height={22} fill='currentColor' />
-                                        <p>Software</p>
+                                        <FolderOpen width={22} height={22} fill='currentColor' />
+                                        <p>Fichiers</p>
                                     </NavLink>
                                 </Can>
+
+                                {databaseLimit !== 0 && (
+                                    <Can action={'database.*'} matchAny>
+                                        <NavLink
+                                            ref={NavigationDatabases}
+                                            to={`/server/${id}/databases`}
+                                            className='flex flex-row items-center'
+                                        >
+                                            <Database width={22} height={22} fill='currentColor' />
+                                            <p>Bases de données</p>
+                                        </NavLink>
+                                    </Can>
+                                )}
+
+                                {backupLimit !== 0 && (
+                                    <Can action={'backup.*'} matchAny>
+                                        <NavLink
+                                            ref={NavigationBackups}
+                                            to={`/server/${id}/backups`}
+                                            className='flex flex-row items-center'
+                                        >
+                                            <CloudArrowUpIn width={22} height={22} fill='currentColor' />
+                                            <p>Sauvegardes</p>
+                                        </NavLink>
+                                    </Can>
+                                )}
+
+                                {(allocationLimit !== 0 || subdomainSupported) && (
+                                    <Can action={'allocation.*'} matchAny>
+                                        <NavLink
+                                            ref={NavigationNetworking}
+                                            to={`/server/${id}/network`}
+                                            className='flex flex-row items-center'
+                                        >
+                                            <BranchesDown width={22} height={22} fill='currentColor' />
+                                            <p>Réseau</p>
+                                        </NavLink>
+                                    </Can>
+                                )}
+
+                                <Can action={'schedule.*'} matchAny>
+                                    <NavLink
+                                        ref={NavigationSchedules}
+                                        to={`/server/${id}/schedules`}
+                                        className='flex flex-row items-center'
+                                    >
+                                        <ClockArrowRotateLeft width={22} height={22} fill='currentColor' />
+                                        <p>Tâches planifiées</p>
+                                    </NavLink>
+                                </Can>
+
+                                <Can action={'user.*'} matchAny>
+                                    <NavLink
+                                        ref={NavigationUsers}
+                                        to={`/server/${id}/users`}
+                                        className='flex flex-row items-center'
+                                    >
+                                        <Persons width={22} height={22} fill='currentColor' />
+                                        <p>Sous-utilisateurs</p>
+                                    </NavLink>
+                                </Can>
+
+                                <li className='sidebar-category'>Configuration</li>
+                                <Can action={['startup.read', 'startup.update']} matchAny>
+                                    <NavLink
+                                        ref={NavigationStartup}
+                                        to={`/server/${id}/startup`}
+                                        className='flex flex-row items-center'
+                                    >
+                                        <Terminal width={22} height={22} fill='currentColor' />
+                                        <p>Startup</p>
+                                    </NavLink>
+                                </Can>
+
+                                <Can action={['settings.*', 'file.sftp']} matchAny>
+                                    <NavLink
+                                        ref={NavigationSettings}
+                                        to={`/server/${id}/settings`}
+                                        className='flex flex-row items-center'
+                                    >
+                                        <Gear width={22} height={22} fill='currentColor' />
+                                        <p>Paramètres</p>
+                                    </NavLink>
+                                </Can>
+
+                                <Can action={['activity.*']} matchAny>
+                                    <NavLink
+                                        ref={NavigationActivity}
+                                        to={`/server/${id}/activity`}
+                                        className='flex flex-row items-center'
+                                    >
+                                        <PencilToLine width={22} height={22} fill='currentColor' />
+                                        <p>Activité</p>
+                                    </NavLink>
+                                </Can>
+
+                                {rootAdmin && (
+                                    <>
+                                        <li className='sidebar-category sidebar-category-admin'>Administration</li>
+                                        <NavLink
+                                            to={`/admin/servers/view/${serverId}`}
+                                            ref={NavigationApi}
+                                            target='_blank'
+                                            rel='noreferrer'
+                                            className='flex flex-row items-center admin-link'
+                                        >
+                                            <Lock width={22} height={22} fill='currentColor' />
+                                            <p>Gérer l&apos;instance</p>
+                                        </NavLink>
+                                    </>
+                                )}
                             </ul>
-                            <div className='shrink-0'>
-                                <div aria-hidden className='mt-8 mb-4 bg-[#ffffff33] min-h-[1px] w-full'></div>
-                                <StatBlock
-                                    title='server'
-                                    className='p-4 bg-[#ffffff09] border-[1px] border-[#ffffff11] shadow-xs rounded-xl text-center hover:cursor-default'
-                                >
-                                    {serverName}
-                                </StatBlock>
+
+                            <div className='sidebar-user mt-auto'>
+                                <div className='sidebar-user-avatar'>
+                                    <img
+                                        src={`https://www.gravatar.com/avatar/${md5(user?.email.toLowerCase() || '')}`}
+                                        alt='Avatar'
+                                        width={36}
+                                        height={36}
+                                        className='rounded-full'
+                                    />
+                                </div>
+                                <div className='sidebar-user-info'>
+                                    <span className='sidebar-user-name'>{user?.username}</span>
+                                    <span className='sidebar-user-email'>{user?.email}</span>
+                                </div>
+                                <button className='sidebar-user-logout' onClick={onTriggerLogout} title='Log out'>
+                                    <ArrowRightFromSquare width={16} height={16} />
+                                </button>
                             </div>
                         </MainSidebar>
 
@@ -516,11 +377,7 @@ const ServerRouter = () => {
                             <InstallListener />
                             <TransferListener />
                             <WebsocketHandler />
-                            <main
-                                data-pyro-main=''
-                                data-pyro-transitionrouter=''
-                                className='relative inset-[1px] w-full h-full overflow-y-auto overflow-x-hidden rounded-md bg-[#08080875]'
-                            >
+                            <main className='relative inset-[1px] w-full h-full overflow-y-auto overflow-x-hidden rounded-md bg-[#08080875]'>
                                 {inConflictState &&
                                 (!rootAdmin || (rootAdmin && !location.pathname.endsWith(`/server/${id}`))) ? (
                                     <ConflictStateRenderer />
@@ -540,7 +397,6 @@ const ServerRouter = () => {
                                                     }
                                                 />
                                             ))}
-
                                             <Route path='*' element={<NotFound />} />
                                         </Routes>
                                     </ErrorBoundary>

@@ -189,7 +189,7 @@ const StartupContainer = () => {
             <div className='flex items-center justify-center min-h-[60vh]'>
                 <div className='flex flex-col items-center gap-4'>
                     <Spinner centered size={Spinner.Size.LARGE} />
-                    <p className='text-sm text-neutral-400'>Loading startup configuration...</p>
+                    <p className='text-sm text-neutral-400'>Iniialisation des paramètres de démarrage...</p>
                 </div>
             </div>
         ) : (
@@ -206,36 +206,33 @@ const StartupContainer = () => {
                 loading={loading}
             >
                 <div className='space-y-3'>
-                    <p>
-                        This will revert your server&apos;s Docker image back to the egg&apos;s default specification.
+                    <p className='text-neutral-300'>
+                        Vous êtes sur le point de rétablir l&apos;image Docker par défaut définie dans le
+                        &quot;Egg&quot;.
                     </p>
-                    <div className='bg-linear-to-b from-amber-500/10 to-amber-600/5 border border-amber-500/20 rounded-xl p-3'>
+                    <div className='bg-amber-500/5 border border-amber-500/20 rounded-xl p-3'>
                         <p className='text-sm text-amber-200'>
-                            <span className='font-medium'>⚠️ Warning:</span> You will not be able to set a custom image
-                            back without contacting support.
+                            <span className='font-medium'>⚠️ Attention:</span>
+                            Le retour à une image personnalisée nécessitera l&apos;intervention du support technique.
                         </p>
                     </div>
-                    <p className='text-sm text-neutral-400'>Are you sure you want to continue?</p>
+                    <p className='text-sm text-neutral-400'>Êtes-vous sûr de vouloir continuer ?</p>
                 </div>
             </Dialog.Confirm>
             <div className='space-y-6'>
-                <MainPageHeader direction='column' title='Startup Settings'>
+                <MainPageHeader direction='column' title='Paramètres de démarrage'>
                     <p className='text-sm text-neutral-400 leading-relaxed'>
-                        Configure how your server starts up. These settings control the startup command and environment
-                        variables.
-                        <span className='text-amber-400 font-medium'>
-                            {' '}
-                            Exercise caution when modifying these settings.
-                        </span>
+                        Gérez la commande d&apos;exécution et les variables d&apos;environnement.
+                        <span className='text-amber-400 font-medium'> Modifiez ces valeurs avec précaution.</span>
                     </p>
                 </MainPageHeader>
 
                 <div className='space-y-6'>
-                    <TitledGreyBox title={'Startup Command'} className='p-6'>
+                    <TitledGreyBox title={'Commande de démarrage'} className='p-6'>
                         <div className='space-y-4 mb-6'>
                             <p className='text-sm text-neutral-400 leading-relaxed'>
-                                Configure the command that starts your server. You can edit the raw command or view the
-                                processed version with variables resolved.
+                                Configurez la commande qui démarre votre serveur. Vous pouvez modifier la commande brute
+                                ou voir la version traitée avec les variables résolues.
                             </p>
                         </div>
                         {editingCommand ? (
@@ -243,13 +240,13 @@ const StartupContainer = () => {
                                 <div className='grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6'>
                                     <div>
                                         <label className='block text-sm font-medium text-neutral-300 mb-3'>
-                                            Raw Command
+                                            Commande brute
                                         </label>
                                         <textarea
-                                            className='w-full h-32 sm:h-36 md:h-40 px-3 py-3 sm:px-4 sm:py-4 text-sm sm:text-base font-mono bg-linear-to-b from-[#ffffff12] to-[#ffffff08] border-2 border-blue-500/30 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60 placeholder:text-neutral-500 transition-all touch-manipulation'
+                                            className='w-full h-32 sm:h-36 md:h-40 px-3 py-3 sm:px-4 sm:py-4 text-sm sm:text-base font-mono bg-back/40 border-2 border-blue-500/30 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/60 placeholder:text-neutral-500 transition-all touch-manipulation'
                                             value={commandValue}
                                             onChange={(e) => handleCommandChange(e.target.value)}
-                                            placeholder='Enter startup command with variables like {{SERVER_MEMORY}} or {{SERVER_PORT}}...'
+                                            placeholder='Entrez la commande de démarrage avec des variables comme {{SERVER_MEMORY}} ou {{SERVER_PORT}}...'
                                             style={{
                                                 wordBreak: 'break-all',
                                                 overflowWrap: 'break-word',
@@ -263,7 +260,7 @@ const StartupContainer = () => {
                                         </label>
                                         <CopyOnClick text={liveProcessedCommand}>
                                             <div className='cursor-pointer group'>
-                                                <div className='w-full h-32 sm:h-36 md:h-40 px-3 py-3 sm:px-4 sm:py-4 font-mono bg-linear-to-b from-[#ffffff06] to-[#ffffff03] border-2 border-green-500/20 rounded-xl text-sm sm:text-base overflow-auto group-hover:border-green-500/40 transition-all'>
+                                                <div className='w-full h-32 sm:h-36 md:h-40 px-3 py-3 sm:px-4 sm:py-4 font-mono bg-back/40 border-2 border-green-500/20 rounded-xl text-sm sm:text-base overflow-auto group-hover:border-green-500/40 transition-all'>
                                                     <span
                                                         className='break-all text-green-200'
                                                         style={{
@@ -273,7 +270,7 @@ const StartupContainer = () => {
                                                         }}
                                                     >
                                                         {liveProcessedCommand ||
-                                                            'Enter a command to see the live preview...'}
+                                                            "Entrez une commande pour voir l'aperçu en direct..."}
                                                     </span>
                                                 </div>
                                             </div>
@@ -281,18 +278,16 @@ const StartupContainer = () => {
                                     </div>
                                 </div>
                                 <div className='flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-[#ffffff08]'>
-                                    <InputSpinner visible={commandLoading}>
-                                        <ActionButton
-                                            variant='primary'
-                                            size='md'
-                                            onClick={updateCommand}
-                                            disabled={commandLoading || !commandValue.trim()}
-                                            className='w-full sm:w-auto sm:flex-1 lg:flex-none lg:min-w-[140px]'
-                                        >
-                                            {commandLoading && <Spinner size='small' />}
-                                            {commandLoading ? 'Saving...' : 'Save Command'}
-                                        </ActionButton>
-                                    </InputSpinner>
+                                    <ActionButton
+                                        variant='primary'
+                                        size='md'
+                                        onClick={updateCommand}
+                                        disabled={commandLoading || !commandValue.trim()}
+                                        className='w-full sm:w-auto sm:flex-1 lg:flex-none lg:min-w-[140px] gap-2'
+                                    >
+                                        {commandLoading && <Spinner size='small' />}
+                                        {commandLoading ? 'Sauvegarde...' : 'Sauvegarder la commande'}
+                                    </ActionButton>
                                     <ActionButton
                                         variant='secondary'
                                         size='md'
@@ -300,7 +295,7 @@ const StartupContainer = () => {
                                         disabled={commandLoading}
                                         className='w-full sm:w-auto sm:flex-1 lg:flex-none lg:min-w-[140px]'
                                     >
-                                        Load Default
+                                        Charger la commande par défaut
                                     </ActionButton>
                                     <ActionButton
                                         variant='secondary'
@@ -309,7 +304,7 @@ const StartupContainer = () => {
                                         disabled={commandLoading}
                                         className='w-full sm:w-auto sm:flex-1 lg:flex-none lg:min-w-[140px]'
                                     >
-                                        Cancel
+                                        Annuler
                                     </ActionButton>
                                 </div>
                             </div>
@@ -318,7 +313,9 @@ const StartupContainer = () => {
                                 {data.rawStartupCommand && (
                                     <div className='space-y-3'>
                                         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-                                            <label className='text-sm font-medium text-neutral-300'>Raw Command</label>
+                                            <label className='text-sm font-medium text-neutral-300'>
+                                                Commande brute
+                                            </label>
                                             {canEditCommand && (
                                                 <ActionButton
                                                     variant='secondary'
@@ -326,13 +323,13 @@ const StartupContainer = () => {
                                                     onClick={startEditingCommand}
                                                     className='w-full sm:w-auto'
                                                 >
-                                                    Edit Command
+                                                    Modifier la commande
                                                 </ActionButton>
                                             )}
                                         </div>
                                         <CopyOnClick text={data.rawStartupCommand}>
                                             <div className='cursor-pointer group'>
-                                                <div className='font-mono bg-linear-to-b from-[#ffffff08] to-[#ffffff05] flex flex-row items-center border border-[#ffffff10] rounded-xl py-3 px-3 sm:py-4 sm:px-4 text-sm sm:text-base min-h-[3.5rem] sm:min-h-[4rem] overflow-auto group-hover:border-[#ffffff20] transition-all'>
+                                                <div className='font-mono bg-neutral-950 flex flex-row items-center border border-[#ffffff10] rounded-xl py-3 px-3 sm:py-4 sm:px-4 text-sm sm:text-base min-h-[3.5rem] sm:min-h-[4rem] overflow-auto group-hover:border-[#ffffff20] transition-all'>
                                                     <span
                                                         className='break-all text-neutral-200'
                                                         style={{
@@ -350,14 +347,14 @@ const StartupContainer = () => {
                                 )}
                                 <div className='space-y-3'>
                                     <div className='flex flex-col items-center sm:flex-row gap-2'>
-                                        <label className='text-sm font-medium text-neutral-300'>
-                                            Processed Command
-                                        </label>
-                                        <span className='text-xs text-neutral-500 rounded w-fit'>Read-only</span>
+                                        <label className='text-sm font-medium text-neutral-300'>Commande traitée</label>
+                                        <span className='text-xs text-neutral-500 rounded w-fit'>
+                                            Lecture seulement
+                                        </span>
                                     </div>
                                     <CopyOnClick text={data.invocation}>
                                         <div className='cursor-pointer group'>
-                                            <div className='font-mono bg-linear-to-b from-[#ffffff04] to-[#ffffff02] flex flex-row items-center border border-[#ffffff08] rounded-xl py-3 px-3 sm:py-4 sm:px-4 text-sm sm:text-base min-h-[3.5rem] sm:min-h-[4rem] overflow-auto group-hover:border-[#ffffff15] transition-all'>
+                                            <div className='font-mono bg-neutral-950 flex flex-row items-center border border-[#ffffff10] rounded-xl py-3 px-3 sm:py-4 sm:px-4 text-sm sm:text-base min-h-[3.5rem] sm:min-h-[4rem] overflow-auto group-hover:border-[#ffffff20] transition-all'>
                                                 <span
                                                     className='break-all text-neutral-300'
                                                     style={{
@@ -379,16 +376,16 @@ const StartupContainer = () => {
                     <TitledGreyBox title={'Docker Image'} className='p-6'>
                         <div className='space-y-4 mb-6'>
                             <p className='text-sm text-neutral-400 leading-relaxed'>
-                                The container image used to run your server. Different images provide different software
-                                versions and configurations.
+                                Le choix d&apos;une image Docker appropriée est crucial pour assurer la compatibilité et
+                                les performances optimales de votre serveur.
                             </p>
                         </div>
                         {Object.keys(data.dockerImages).length > 1 && !isCustomImage ? (
-                            <div className='space-y-4'>
+                            <div className='space-y-4 w-full'>
                                 <InputSpinner visible={loading}>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <button className='w-full flex items-center justify-between gap-3 font-medium text-sm sm:text-base px-3 py-3 sm:px-4 sm:py-3 rounded-md bg-linear-to-b from-[#ffffff10] to-[#ffffff09] border border-[#ffffff15] hover:from-[#ffffff15] hover:to-[#ffffff10] hover:border-[#ffffff25] transition-all cursor-pointer touch-manipulation'>
+                                            <button className='w-full flex items-center justify-between gap-3 font-medium text-sm sm:text-base px-3 py-3 sm:px-4 sm:py-3 rounded-md bg-neutral-950 border border-[#ffffff15] hover:from-[#ffffff15] hover:to-[#ffffff10] hover:border-[#ffffff25] transition-all cursor-pointer touch-manipulation'>
                                                 <span className='truncate text-left font-mono text-neutral-200'>
                                                     {Object.keys(data.dockerImages).find(
                                                         (key) => data.dockerImages[key] === variables.dockerImage,
@@ -412,19 +409,27 @@ const StartupContainer = () => {
                                                 </svg>
                                             </button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent className='flex flex-col gap-1 z-99999' sideOffset={8}>
+                                        <DropdownMenuContent
+                                            className='min-w-[var(--radix-dropdown-menu-trigger-width)] flex flex-col gap-1 z-999999'
+                                            sideOffset={8}
+                                        >
                                             <DropdownMenuRadioGroup
                                                 value={variables.dockerImage}
                                                 onValueChange={(value) => updateSelectedDockerImage(value)}
                                             >
-                                                {Object.keys(data.dockerImages).map((key) => (
-                                                    <DropdownMenuRadioItem
-                                                        value={data.dockerImages[key] as string}
-                                                        key={data.dockerImages[key]}
-                                                    >
-                                                        {key}
-                                                    </DropdownMenuRadioItem>
-                                                ))}
+                                                {Object.values(data.dockerImages).map((image) => {
+                                                    const key = Object.keys(data.dockerImages).find(
+                                                        (k) => data.dockerImages[k] === image,
+                                                    )!;
+                                                    return (
+                                                        <DropdownMenuRadioItem value={image} key={image}>
+                                                            {key}
+                                                            <span className='text-xs font-mono text-neutral-400 ml-2'>
+                                                                {image}
+                                                            </span>
+                                                        </DropdownMenuRadioItem>
+                                                    );
+                                                })}
                                             </DropdownMenuRadioGroup>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -447,18 +452,18 @@ const StartupContainer = () => {
                                     </span>
                                 </div>
                                 {isCustomImage && (
-                                    <div className='bg-linear-to-b from-amber-500/10 to-amber-600/5 border border-amber-500/20 rounded-xl p-3 sm:p-4'>
+                                    <div className='bg-neutral-950 border border-amber-500/20 rounded-xl p-3 sm:p-4'>
                                         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
                                             <div className='flex-1'>
                                                 <p className='text-sm text-amber-200'>
-                                                    <span className='font-medium'>Notice:</span> This server&apos;s
-                                                    Docker image has been manually set by an administrator and cannot be
-                                                    changed through this interface.
+                                                    <span className='font-medium'>Notice:</span>
+                                                    L&apos;image Docker de ce serveur est définie manuellement par un
+                                                    administrateur et ne peut pas être modifiée via cette interface.
                                                 </p>
                                                 {canEditDockerImage && (
                                                     <p className='text-xs text-amber-300/80 mt-2'>
-                                                        You can revert to the egg&apos;s default image, but you
-                                                        won&apos;t be able to set it back without contacting support.
+                                                        Vous pouvez revenir à l&apos;image par défaut de l&apos;œuf,
+                                                        mais vous ne pourrez pas la remettre sans contacter le support.
                                                     </p>
                                                 )}
                                             </div>
@@ -470,10 +475,10 @@ const StartupContainer = () => {
                                                             size='sm'
                                                             onClick={() => setRevertModalVisible(true)}
                                                             disabled={loading}
-                                                            className='w-full sm:w-auto text-amber-200 bg-linear-to-b from-amber-600/20 to-amber-700/20 border-amber-500/40 hover:from-amber-500/30 hover:to-amber-600/30 hover:border-amber-500/60 hover:text-amber-100'
+                                                            className='w-full sm:w-auto text-amber-200 bg-amber-600/20 border-amber-500/40 hover:from-amber-500/30 hover:to-amber-600/30 hover:border-amber-500/60 hover:text-amber-100'
                                                         >
                                                             {loading && <Spinner size='small' />}
-                                                            Revert to Default
+                                                            ️Revenir à la valeur par défaut
                                                         </ActionButton>
                                                     </InputSpinner>
                                                 </div>
@@ -489,65 +494,46 @@ const StartupContainer = () => {
                 {data && data.variables.length > 0 && (
                     <div className='space-y-6'>
                         <div className='space-y-3'>
-                            <h3 className='text-2xl font-extrabold text-neutral-200'>Environment Variables</h3>
+                            <h3 className='text-2xl font-extrabold text-neutral-200'>Variables d&apos;environnement</h3>
                             <p className='text-sm text-neutral-400 leading-relaxed'>
-                                Configure environment variables that will be available to your server. These variables
-                                can be used to customize server behavior and settings.
+                                Configurez les variables d&apos;environnement qui seront disponibles pour votre serveur.
+                                Ces variables peuvent être utilisées pour personnaliser le comportement et les
+                                paramètres du serveur.
                             </p>
                         </div>
 
-                        <div className='bg-linear-to-b from-[#ffffff04] to-[#ffffff02] border border-[#ffffff08] rounded-xl p-4'>
+                        <div className='bg-zinc-900 border border-[#ffffff08] rounded-xl p-4'>
                             <div className='space-y-3'>
-                                <h4 className='text-sm font-medium text-neutral-300'>Global Server Variables</h4>
+                                <h4 className='text-sm font-medium text-neutral-300'>Variables globales du serveur</h4>
                                 <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs'>
-                                    <div className='flex justify-between items-center gap-2 py-2 px-3 bg-[#ffffff06] rounded border border-[#ffffff08]'>
-                                        <span className='font-mono text-neutral-400'>{'SERVER_MEMORY'}</span>
-                                        <CopyOnClick text={server?.limits?.memory || 'null'}>
-                                            <span className='text-neutral-300 font-mono'>
-                                                {server?.limits?.memory || 'null'}
-                                            </span>
-                                        </CopyOnClick>
-                                    </div>
-                                    <div className='flex justify-between items-center gap-2 py-2 px-3 bg-[#ffffff06] rounded border border-[#ffffff08]'>
-                                        <span className='font-mono text-neutral-400'>{'SERVER_IP'}</span>
-                                        <CopyOnClick text={server?.allocations?.find((a) => a.isDefault)?.ip || 'null'}>
-                                            <span className='text-neutral-300 font-mono'>
-                                                {server?.allocations?.find((a) => a.isDefault)?.ip || 'null'}
-                                            </span>
-                                        </CopyOnClick>
-                                    </div>
-                                    <div className='flex justify-between items-center gap-2 py-2 px-3 bg-[#ffffff06] rounded border border-[#ffffff08]'>
-                                        <span className='font-mono text-neutral-400'>{'SERVER_PORT'}</span>
-                                        <CopyOnClick
-                                            text={server?.allocations?.find((a) => a.isDefault)?.port || 'null'}
+                                    {[
+                                        { label: 'RAM', value: server?.limits?.memory, env: 'SERVER_MEMORY' },
+                                        {
+                                            label: 'IP',
+                                            value: server?.allocations?.find((a) => a.isDefault)?.ip,
+                                            env: 'SERVER_IP',
+                                        },
+                                        {
+                                            label: 'PORT',
+                                            value: server?.allocations?.find((a) => a.isDefault)?.port,
+                                            env: 'SERVER_PORT',
+                                        },
+                                        { label: 'ID', value: server?.uuid, env: 'SERVER_UUID' },
+                                        { label: 'NAME', value: server?.name, env: 'SERVER_NAME' },
+                                        { label: 'CPU', value: server?.limits?.cpu, env: 'SERVER_CPU' },
+                                    ].map((item) => (
+                                        <div
+                                            key={item.env}
+                                            className='flex justify-between items-center gap-2 py-2 px-3 bg-neutral-950 rounded-lg border border-white/10'
                                         >
-                                            <span className='text-neutral-300 font-mono'>
-                                                {server?.allocations?.find((a) => a.isDefault)?.port || 'null'}
-                                            </span>
-                                        </CopyOnClick>
-                                    </div>
-                                    <div className='flex justify-between items-center gap-2 py-2 px-3 bg-[#ffffff06] rounded border border-[#ffffff08]'>
-                                        <span className='font-mono text-neutral-400'>{'SERVER_UUID'}</span>
-                                        <CopyOnClick text={uuid}>
-                                            <span className='text-neutral-300 font-mono text-xs truncate'>{uuid}</span>
-                                        </CopyOnClick>
-                                    </div>
-                                    <div className='flex justify-between items-center gap-2 py-2 px-3 bg-[#ffffff06] rounded border border-[#ffffff08]'>
-                                        <span className='font-mono text-neutral-400'>{'SERVER_NAME'}</span>
-                                        <CopyOnClick text={server?.name || 'null'}>
-                                            <span className='text-neutral-300 font-mono truncate'>
-                                                {server?.name || 'null'}
-                                            </span>
-                                        </CopyOnClick>
-                                    </div>
-                                    <div className='flex justify-between items-center gap-2 py-2 px-3 bg-[#ffffff06] rounded border border-[#ffffff08]'>
-                                        <span className='font-mono text-neutral-400'>{'SERVER_CPU'}</span>
-                                        <CopyOnClick text={server?.limits?.cpu || 'null'}>
-                                            <span className='text-neutral-300 font-mono'>
-                                                {server?.limits?.cpu || 'null'}
-                                            </span>
-                                        </CopyOnClick>
-                                    </div>
+                                            <span className='font-mono text-neutral-400'>{item.env}</span>
+                                            <CopyOnClick text={item.value || 'null'}>
+                                                <span className='text-neutral-300 font-mono'>
+                                                    {item.value || 'null'}
+                                                </span>
+                                            </CopyOnClick>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

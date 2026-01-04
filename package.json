@@ -1,5 +1,5 @@
 {
-    "name": "pyrodactyl",
+    "name": "hdactyl",
     "version": "4.0.0-dev",
     "buildNumber": "30",
     "engines": {
@@ -37,6 +37,7 @@
         "@xterm/addon-web-links": "^0.11.0",
         "@xterm/xterm": "^5.5.0",
         "axios": "^1.11.0",
+        "blueimp-md5": "^2.19.0",
         "browserslist": "^4.25.1",
         "chart.js": "^4.5.0",
         "clsx": "^2.1.1",
@@ -61,6 +62,7 @@
         "react-chartjs-2": "^5.3.0",
         "react-dom": "^19.1.1",
         "react-fast-compare": "^3.2.2",
+        "react-icons": "^5.5.0",
         "react-router-dom": "^7.7.1",
         "sockette": "^2.0.6",
         "sonner": "^2.0.7",
@@ -113,7 +115,7 @@
         "compose:down": "docker compose down",
         "build": "vite build",
         "build:turbo": "turbo build",
-        "build:docker:dev": "docker buildx build -t pyrodactyl:develop --build-arg DEV=true .",
+        "build:docker:dev": "docker buildx build -t hdactyl:develop --build-arg DEV=true .",
         "ship": "turbo lint build"
     },
     "browserslist": [

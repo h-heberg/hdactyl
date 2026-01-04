@@ -1,3 +1,4 @@
+import { FolderOpen, Pencil } from '@gravity-ui/icons';
 import { Form, Formik, FormikHelpers } from 'formik';
 import { join } from 'pathe';
 
@@ -17,73 +18,104 @@ interface FormikValues {
     name: string;
 }
 
-type OwnProps = RequiredModalProps & { files: string[]; useMoveTerminology?: boolean };
+type OwnProps = RequiredModalProps & {
+    files: string[];
+    useMoveTerminology?: boolean;
+};
 
 const RenameFileModal = ({ files, useMoveTerminology, ...props }: OwnProps) => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
+    const directory = ServerContext.useStoreState((state) => state.files.directory);
+
     const { mutate } = useFileManagerSwr();
     const { clearFlashes, clearAndAddHttpError } = useFlash();
-    const directory = ServerContext.useStoreState((state) => state.files.directory);
     const setSelectedFiles = ServerContext.useStoreActions((actions) => actions.files.setSelectedFiles);
 
     const submit = ({ name }: FormikValues, { setSubmitting }: FormikHelpers<FormikValues>) => {
         clearFlashes('files');
 
-        const len = name.split('/').length;
+        // Optimistic UI updates for a single file
         if (files.length === 1) {
-            if (!useMoveTerminology && len === 1) {
-                // Rename the file within this directory.
+            const isMoving = useMoveTerminology || name.includes('/');
+            if (!isMoving) {
+                // Rename local
                 mutate((data) => data!.map((f) => (f.name === files[0] ? { ...f, name } : f)), false);
-            } else if (useMoveTerminology || len > 1) {
-                // Remove the file from this directory since they moved it elsewhere.
+            } else {
+                // Hide from current view if moved
                 mutate((data) => data!.filter((f) => f.name !== files[0]), false);
             }
         }
 
-        let data;
-        if (useMoveTerminology && files.length > 1) {
-            data = files.map((f) => ({ from: f, to: join(name, f) }));
-        } else {
-            data = files.map((f) => ({ from: f, to: name }));
-        }
+        const payload = files.map((f) => ({
+            from: f,
+            to: useMoveTerminology && files.length > 1 ? join(name, f) : name,
+        }));
 
-        renameFiles(uuid, directory, data)
-            .then((): Promise<any> => (files.length > 0 ? mutate() : Promise.resolve()))
+        renameFiles(uuid, directory, payload)
+            .then(() => mutate())
             .then(() => setSelectedFiles([]))
+            .then(() => props.onDismissed())
             .catch((error) => {
                 mutate();
                 setSubmitting(false);
                 clearAndAddHttpError({ key: 'files', error });
-            })
-            .then(() => props.onDismissed());
+            });
     };
 
+    const isMultiple = files.length > 1;
+
     return (
-        <Formik onSubmit={submit} initialValues={{ name: files.length > 1 ? '' : files[0] || '' }}>
+        <Formik onSubmit={submit} initialValues={{ name: isMultiple ? '' : files[0] || '' }} enableReinitialize>
             {({ isSubmitting, values }) => (
                 <Modal
                     {...props}
                     dismissable={!isSubmitting}
                     showSpinnerOverlay={isSubmitting}
-                    title={useMoveTerminology ? 'Moving files/folders' : 'Renaming file/folder'}
+                    title={useMoveTerminology ? 'Déplacer les éléments' : "Renommer l'élément"}
                 >
-                    <Form className={`w-full`}>
-                        <div className='w-full'>
-                            <Field type={'string'} id={'file_name'} name={'name'} label={'File Name'} autoFocus />
-                            {useMoveTerminology && (
-                                <p className={`mt-2 text-xs! break-all`}>
-                                    <strong className={`text-sm text-zinc-200`}>New location: </strong>
-                                    <Code>
-                                        /root/
-                                        <span className={`text-blue-200`}>
-                                            {join(directory, values.name).replace(/^(\.\.\/|\/)+/, '')}
-                                        </span>
+                    <Form className='w-full'>
+                        <div className='space-y-4'>
+                            <Field
+                                id='file_name'
+                                name='name'
+                                label={useMoveTerminology ? 'Chemin de destination' : 'Nouveau nom'}
+                                placeholder={isMultiple ? 'Ex: /backups/old' : 'Ex: config_v2.yml'}
+                                autoFocus
+                            />
+
+                            <div className='bg-neutral-900/50 border border-white/5 rounded-xl p-4 transition-all'>
+                                <div className='flex items-center gap-2 mb-2 text-neutral-400'>
+                                    {useMoveTerminology ? (
+                                        <FolderOpen className='w-4 h-4' />
+                                    ) : (
+                                        <Pencil className='w-4 h-4' />
+                                    )}
+                                    <span className='text-xs font-semibold uppercase tracking-wider'>
+                                        Aperçu du changement
+                                    </span>
+                                </div>
+
+                                <p className='text-xs break-all leading-relaxed'>
+                                    <span className='text-neutral-500'>/root/</span>
+                                    <Code className='text-brand-400'>
+                                        {join(directory, values.name).replace(/^(\.\.\/|\/)+/, '') ||
+                                            (isMultiple ? '...' : values.name)}
                                     </Code>
                                 </p>
-                            )}
-                            <div className={`flex justify-end w-full my-6`}>
-                                <ActionButton variant='primary' type='submit'>
-                                    {useMoveTerminology ? 'Move' : 'Rename'}
+
+                                {isMultiple && (
+                                    <p className='mt-2 text-[10px] text-neutral-500 italic'>
+                                        Note : {files.length} fichiers seront déplacés vers ce répertoire.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className='flex justify-end gap-3 pt-2'>
+                                <ActionButton variant='secondary' onClick={props.onDismissed} disabled={isSubmitting}>
+                                    Annuler
+                                </ActionButton>
+                                <ActionButton variant='primary' type='submit' disabled={isSubmitting}>
+                                    {useMoveTerminology ? 'Déplacer' : 'Renommer'}
                                 </ActionButton>
                             </div>
                         </div>

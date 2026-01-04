@@ -5,16 +5,16 @@
     /* @apply col-span-3 md:col-span-2 lg:col-span-6; */
     @apply p-8;
 
-    & > .status_bar {
+    &>.status_bar {
         @apply absolute top-0 left-0 h-full w-1 rounded-l sm:hidden;
     }
 
-    & > .icon {
+    &>.icon {
         @apply hidden h-12 w-12 shrink-0 items-center justify-center rounded-lg shadow-md;
         @apply transition-colors duration-500;
         @apply sm:mr-4 sm:flex;
 
-        & > svg {
+        &>svg {
             @apply m-auto h-6 w-6;
         }
     }
@@ -23,10 +23,10 @@
 .terminal {
     @apply relative flex h-full w-full flex-col;
 
-    & > .terminalContainer {
+    &>.terminalContainer {
         @apply h-full min-h-[453px] rounded-t-xl border-x-[1px] border-t-[1px] border-[#ffffff11] bg-[#131313] pt-8 pl-8 font-mono text-sm;
 
-        & #terminal {
+        &>#terminal {
             @apply h-full w-full;
 
             &::-webkit-scrollbar-track {

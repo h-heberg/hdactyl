@@ -3,10 +3,8 @@ import {
     Box,
     BranchesDown,
     Clock,
-    ClockArrowRotateLeft,
     CloudArrowUpIn,
     Database,
-    Ellipsis,
     FolderOpen,
     Gear,
     House,
@@ -184,7 +182,7 @@ export const ServerMobileMenu = ({
                     </Can>
                 )}
 
-                {(allocationLimit > 0 || subdomainSupported) && (
+                {((allocationLimit && allocationLimit > 0) || subdomainSupported) && (
                     <Can action={'allocation.*'} matchAny>
                         <NavigationItem to={`/server/${serverId}/network`} icon={BranchesDown} end>
                             Networking

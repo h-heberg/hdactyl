@@ -1,4 +1,4 @@
-import { Database } from '@gravity-ui/icons';
+import { Database, Plus } from '@gravity-ui/icons';
 import { Form, Formik, FormikHelpers } from 'formik';
 import { For } from 'million/react';
 import { useEffect, useState } from 'react';
@@ -11,7 +11,7 @@ import Field from '@/components/elements/Field';
 import { MainPageHeader } from '@/components/elements/MainPageHeader';
 import Modal from '@/components/elements/Modal';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
-import { PageListContainer, PageListItem } from '@/components/elements/pages/PageList';
+import { PageListContainer } from '@/components/elements/pages/PageList';
 import DatabaseRow from '@/components/server/databases/DatabaseRow';
 
 import { httpErrorToHuman } from '@/api/http';
@@ -30,14 +30,14 @@ interface DatabaseValues {
 
 const databaseSchema = object().shape({
     databaseName: string()
-        .required('A database name must be provided.')
-        .min(3, 'Database name must be at least 3 characters.')
-        .max(48, 'Database name must not exceed 48 characters.')
+        .required('Un nom de base de données est requis.')
+        .min(3, 'Le nom doit faire au moins 3 caractères.')
+        .max(48, 'Le nom ne doit pas dépasser 48 caractères.')
         .matches(
             /^[\w\-.]{3,48}$/,
-            'Database name should only contain alphanumeric characters, underscores, dashes, and/or periods.',
+            'Le nom ne peut contenir que des lettres, chiffres, tirets, points et underscores.',
         ),
-    connectionsFrom: string().matches(/^[\w\-/.%:]+$/, 'A valid host address must be provided.'),
+    connectionsFrom: string().matches(/^[\w\-/.%:]+$/, "Une adresse d'hôte valide est requise."),
 });
 
 const DatabasesContainer = () => {
@@ -51,6 +51,15 @@ const DatabasesContainer = () => {
     const databases = useDeepMemoize(ServerContext.useStoreState((state) => state.databases.data));
     const setDatabases = ServerContext.useStoreActions((state) => state.databases.setDatabases);
     const appendDatabase = ServerContext.useStoreActions((actions) => actions.databases.appendDatabase);
+
+    useEffect(() => {
+        setLoading(!databases.length);
+        clearFlashes('databases');
+        getServerDatabases(uuid)
+            .then((databases) => setDatabases(databases))
+            .catch((error) => addError({ key: 'databases', message: httpErrorToHuman(error) }))
+            .then(() => setLoading(false));
+    }, []);
 
     const submitDatabase = (values: DatabaseValues, { setSubmitting, resetForm }: FormikHelpers<DatabaseValues>) => {
         clearFlashes('database:create');
@@ -70,56 +79,103 @@ const DatabasesContainer = () => {
             });
     };
 
-    useEffect(() => {
-        setLoading(!databases.length);
-        clearFlashes('databases');
-
-        getServerDatabases(uuid)
-            .then((databases) => setDatabases(databases))
-            .catch((error) => {
-                console.error(error);
-                addError({ key: 'databases', message: httpErrorToHuman(error) });
-            })
-            .then(() => setLoading(false));
-    }, []);
-
     return (
-        <ServerContentBlock title={'Databases'}>
+        <ServerContentBlock title={'Bases de données'}>
             <FlashMessageRender byKey={'databases'} />
-            <MainPageHeader
-                direction='column'
-                title={'Databases'}
-                titleChildren={
-                    <Can action={'database.create'}>
-                        <div className='flex flex-col sm:flex-row items-center justify-end gap-4'>
-                            {databaseLimit === null && (
-                                <p className='text-sm text-zinc-300 text-center sm:text-right'>
-                                    {databases.length} databases (unlimited)
-                                </p>
-                            )}
-                            {databaseLimit > 0 && (
-                                <p className='text-sm text-zinc-300 text-center sm:text-right'>
-                                    {databases.length} of {databaseLimit} databases
-                                </p>
-                            )}
-                            {databaseLimit === 0 && (
-                                <p className='text-sm text-red-400 text-center sm:text-right'>Databases disabled</p>
-                            )}
-                            {(databaseLimit === null || (databaseLimit > 0 && databaseLimit !== databases.length)) && (
-                                <ActionButton variant='primary' onClick={() => setCreateModalVisible(true)}>
-                                    New Database
-                                </ActionButton>
-                            )}
-                        </div>
-                    </Can>
-                }
-            >
-                <p className='text-sm text-neutral-400 leading-relaxed'>
-                    Create and manage MySQL databases for your server. Configure database access, manage users, and view
-                    connection details.
+
+            <MainPageHeader title={'Bases de données'}>
+                <p className='text-sm text-zinc-400 leading-relaxed max-w-2xl'>
+                    Créez et gérez des bases de données MySQL pour votre serveur. Configurez les accès, gérez les
+                    utilisateurs et consultez les détails de connexion JDBC.
                 </p>
             </MainPageHeader>
 
+            <div className='mt-10'>
+                <div className='bg-zinc-950/40 backdrop-blur-xl border border-white/5 rounded-[24px] overflow-hidden shadow-2xl transition-all duration-300'>
+                    {/* Header interne identique au NetworkContainer */}
+                    <div className='p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]'>
+                        <div className='flex items-center gap-4'>
+                            <div className='w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400'>
+                                <Database width={20} height={20} />
+                            </div>
+                            <div>
+                                <h3 className='text-sm font-bold uppercase tracking-widest text-zinc-200'>
+                                    Instances de bases de données
+                                </h3>
+                                <p className='text-[11px] text-zinc-500 font-medium font-mono lowercase tracking-tighter'>
+                                    Gérez vos bases de données
+                                </p>
+                            </div>
+                        </div>
+
+                        <Can action={'database.create'}>
+                            <div className='flex items-center gap-4'>
+                                <div className='hidden sm:flex items-center px-3 py-1.5 rounded-full bg-zinc-900/50 border border-white/5 text-[11px] font-bold text-zinc-400 uppercase tracking-tighter'>
+                                    {databaseLimit === null ? (
+                                        <span>{databases.length} / ∞</span>
+                                    ) : databaseLimit === 0 ? (
+                                        <span className='text-red-400 font-bold tracking-normal'>Désactivé</span>
+                                    ) : (
+                                        <span>
+                                            {databases.length} sur {databaseLimit} utilisés
+                                        </span>
+                                    )}
+                                </div>
+
+                                {(databaseLimit === null ||
+                                    (databaseLimit > 0 && databaseLimit !== databases.length)) && (
+                                    <ActionButton
+                                        variant='primary'
+                                        onClick={() => setCreateModalVisible(true)}
+                                        className='group !rounded-full !px-5 !py-2 flex items-center gap-2'
+                                    >
+                                        <Plus width={16} height={16} />
+                                        <span className='text-xs font-bold uppercase tracking-wider'>
+                                            Nouvelle Base
+                                        </span>
+                                    </ActionButton>
+                                )}
+                            </div>
+                        </Can>
+                    </div>
+
+                    {/* Zone de contenu (Liste ou États) */}
+                    <div className='p-2'>
+                        {loading && !databases.length ? (
+                            <div className='flex flex-col items-center justify-center py-20 gap-4'>
+                                <div className='animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-white/20 border-t-zinc-200'></div>
+                                <p className='text-xs font-bold uppercase tracking-[0.2em] text-zinc-500'>
+                                    Initialisation...
+                                </p>
+                            </div>
+                        ) : databases.length > 0 ? (
+                            <div className='space-y-1 p-2'>
+                                <PageListContainer>
+                                    <For each={databases} memo>
+                                        {(database) => <DatabaseRow key={database.id} database={database} />}
+                                    </For>
+                                </PageListContainer>
+                            </div>
+                        ) : (
+                            <div className='flex flex-col items-center justify-center py-24 px-6 text-center'>
+                                <div className='w-16 h-16 mb-6 rounded-[20px] bg-white/5 flex items-center justify-center border border-white/5'>
+                                    <Database width={28} height={28} className='text-zinc-600' />
+                                </div>
+                                <h4 className='text-lg font-bold text-zinc-200 tracking-tight'>
+                                    {databaseLimit === 0 ? 'Accès restreint' : 'Aucune base de données'}
+                                </h4>
+                                <p className='text-sm text-zinc-500 mt-2 max-w-[280px] leading-relaxed font-medium'>
+                                    {databaseLimit === 0
+                                        ? 'Votre offre actuelle ne permet pas de créer de bases de données.'
+                                        : 'Commencez par créer une base de données pour stocker vos informations.'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Modal de création (style conservé mais épuré) */}
             <Formik
                 onSubmit={submitDatabase}
                 initialValues={{ databaseName: '', connectionsFrom: '' }}
@@ -134,32 +190,30 @@ const DatabasesContainer = () => {
                             resetForm();
                             setCreateModalVisible(false);
                         }}
-                        title='Create new database'
+                        title='Créer une nouvelle base de données'
                     >
-                        <div className='flex flex-col'>
+                        <div className='flex flex-col gap-4 w-full'>
                             <FlashMessageRender byKey={'database:create'} />
-                            <Form>
+                            <Form className='space-y-6'>
                                 <Field
-                                    type={'string'}
-                                    id={'database_name'}
                                     name={'databaseName'}
-                                    label={'Database Name'}
-                                    description={'A descriptive name for your database instance.'}
+                                    label={'Nom de la base'}
+                                    description={"Le nom sera préfixé par l'ID de votre serveur."}
                                 />
-                                <div className={`mt-6`}>
-                                    <Field
-                                        type={'string'}
-                                        id={'connections_from'}
-                                        name={'connectionsFrom'}
-                                        label={'Connections From'}
-                                        description={
-                                            'Where connections should be allowed from. Leave blank to allow connections from anywhere.'
-                                        }
-                                    />
-                                </div>
-                                <div className={`flex gap-3 justify-end my-6`}>
-                                    <ActionButton variant='primary' type={'submit'}>
-                                        Create Database
+                                <Field
+                                    name={'connectionsFrom'}
+                                    label={'Connexions autorisées'}
+                                    placeholder='%'
+                                    description={'Laissez vide (%) pour autoriser toutes les adresses.'}
+                                />
+                                <div className='flex gap-3 justify-end pt-4'>
+                                    <ActionButton
+                                        variant='primary'
+                                        type='submit'
+                                        className='w-full sm:w-auto !px-8 mb-6'
+                                        disabled={isSubmitting}
+                                    >
+                                        Créer l&apos;instance
                                     </ActionButton>
                                 </div>
                             </Form>
@@ -167,34 +221,6 @@ const DatabasesContainer = () => {
                     </Modal>
                 )}
             </Formik>
-
-            {!databases.length && loading ? (
-                <div className='flex items-center justify-center py-12'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand'></div>
-                </div>
-            ) : databases.length > 0 ? (
-                <PageListContainer data-pyro-databases>
-                    <For each={databases} memo>
-                        {(database, index) => <DatabaseRow key={database.id} database={database} />}
-                    </For>
-                </PageListContainer>
-            ) : (
-                <div className='flex flex-col items-center justify-center min-h-[60vh] py-12 px-4'>
-                    <div className='text-center'>
-                        <div className='w-16 h-16 mx-auto mb-4 rounded-full bg-[#ffffff11] flex items-center justify-center'>
-                            <Database className='w-8 h-8 text-zinc-400' fill='currentColor' />
-                        </div>
-                        <h3 className='text-lg font-medium text-zinc-200 mb-2'>
-                            {databaseLimit === 0 ? 'Databases unavailable' : 'No databases found'}
-                        </h3>
-                        <p className='text-sm text-zinc-400 max-w-sm'>
-                            {databaseLimit === 0
-                                ? 'Databases cannot be created for this server.'
-                                : 'Your server does not have any databases. Create one to get started.'}
-                        </p>
-                    </div>
-                </div>
-            )}
         </ServerContentBlock>
     );
 };

@@ -22,13 +22,13 @@ const ApiKeyModal = ({ apiKey }: Props) => {
 
             {/* Modal Header */}
             <p className='text-sm text-white-600 mt-2'>
-                The API key you have requested is shown below. Please store it in a safe place, as it will not be shown
-                again.
+                La clé API que vous avez demandée est affichée ci-dessous. Veuillez la conserver en lieu sûr, car elle
+                ne sera plus affichée par la suite.
             </p>
 
             {/* API Key Display Section */}
             <div className='relative mt-6'>
-                <pre className='bg-gray-900 text-white p-4 rounded-lg font-mono overflow-x-auto'>
+                <pre className='bg-background text-white p-4 rounded-lg font-mono overflow-x-auto border border-white/10'>
                     <CopyOnClick text={apiKey}>
                         <code className='text-sm break-words'>{apiKey}</code>
                     </CopyOnClick>
@@ -40,8 +40,8 @@ const ApiKeyModal = ({ apiKey }: Props) => {
 
             {/* Action Buttons */}
             <div className='flex justify-end space-x-4'>
-                <ActionButton type='button' onClick={() => dismiss()} variant='danger' className='flex items-center'>
-                    Close
+                <ActionButton type='button' onClick={() => dismiss()} variant='primary' className='flex items-center'>
+                    Fermer
                 </ActionButton>
             </div>
         </div>
@@ -51,7 +51,7 @@ const ApiKeyModal = ({ apiKey }: Props) => {
 ApiKeyModal.displayName = 'ApiKeyModal';
 
 export default asModal<Props>({
-    title: 'Your API Key',
+    title: 'Votre clé API',
     closeOnEscape: true, // Allows closing the modal by pressing Escape
     closeOnBackground: true, // Allows closing by clicking outside the modal
 })(ApiKeyModal);

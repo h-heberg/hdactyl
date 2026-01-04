@@ -14,7 +14,6 @@ import ModrinthContainer from '@/components/server/modrinth/ModrinthContainer';
 import NetworkContainer from '@/components/server/network/NetworkContainer';
 import ScheduleContainer from '@/components/server/schedules/ScheduleContainer';
 import SettingsContainer from '@/components/server/settings/SettingsContainer';
-import ShellContainer from '@/components/server/shell/ShellContainer';
 import StartupContainer from '@/components/server/startup/StartupContainer';
 import CreateUserContainer from '@/components/server/users/CreateUserContainer';
 import EditUserContainer from '@/components/server/users/EditUserContainer';
@@ -61,26 +60,26 @@ export default {
         {
             route: '',
             path: '',
-            name: 'Account',
+            name: 'Compte',
             component: AccountOverviewContainer,
             end: true,
         },
         {
             route: 'api',
             path: 'api',
-            name: 'API Credentials',
+            name: 'Identifiants API',
             component: AccountApiContainer,
         },
         {
             route: 'ssh',
             path: 'ssh',
-            name: 'SSH Keys',
+            name: 'Clés SSH',
             component: AccountSSHContainer,
         },
         {
             route: 'activity',
             path: 'activity',
-            name: 'Activity',
+            name: 'Activité',
             component: ActivityLogContainer,
         },
     ],
@@ -97,7 +96,7 @@ export default {
             route: 'files/*',
             path: 'files',
             permission: 'file.*',
-            name: 'Files',
+            name: 'Fichiers',
             component: FileManagerContainer,
         },
         {
@@ -110,14 +109,14 @@ export default {
             route: 'databases/*',
             path: 'databases',
             permission: 'database.*',
-            name: 'Databases',
+            name: 'Bases de données',
             component: DatabasesContainer,
         },
         {
             route: 'schedules/*',
             path: 'schedules',
             permission: 'schedule.*',
-            name: 'Schedules',
+            name: 'Tâches planifiées',
             component: ScheduleContainer,
         },
         {
@@ -130,7 +129,7 @@ export default {
             route: 'users/*',
             path: 'users',
             permission: 'user.*',
-            name: 'Users',
+            name: 'Utilisateurs',
             component: UsersContainer,
         },
         {
@@ -149,36 +148,29 @@ export default {
             route: 'backups/*',
             path: 'backups',
             permission: 'backup.*',
-            name: 'Backups',
+            name: 'Sauvegardes',
             component: BackupContainer,
         },
         {
             route: 'network/*',
             path: 'network',
             permission: 'allocation.*',
-            name: 'Network',
+            name: 'Réseau',
             component: NetworkContainer,
         },
         {
             route: 'startup/*',
             path: 'startup',
             permission: ['startup.read', 'startup.update', 'startup.docker-image'],
-            name: 'Startup',
+            name: 'Démarrage',
             component: StartupContainer,
         },
         {
             route: 'settings/*',
             path: 'settings',
             permission: ['settings.*', 'file.sftp'],
-            name: 'Settings',
+            name: 'Paramètres',
             component: SettingsContainer,
-        },
-        {
-            route: 'shell/*',
-            path: 'shell',
-            permission: 'startup.software',
-            name: 'Software',
-            component: ShellContainer,
         },
         {
             route: 'mods/*',
@@ -191,7 +183,7 @@ export default {
             route: 'activity/*',
             path: 'activity',
             permission: 'activity.*',
-            name: 'Activity',
+            name: 'Activité',
             component: ServerActivityLogContainer,
         },
     ],

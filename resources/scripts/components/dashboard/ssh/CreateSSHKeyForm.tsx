@@ -86,7 +86,7 @@ const CreateSSHKeyForm = () => {
                             {/* Submit Button below form fields */}
                             <div className='flex justify-end mt-6'>
                                 <ActionButton type='submit' disabled={isSubmitting}>
-                                    {isSubmitting ? 'Creating...' : 'Create SSH Key'}
+                                    {isSubmitting ? 'Création...' : 'Créer la clé SSH'}
                                 </ActionButton>
                             </div>
                         </Form>

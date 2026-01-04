@@ -1,66 +1,19 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Server as ServerIcon } from '@gravity-ui/icons';
+import clsx from 'clsx';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import styled from 'styled-components';
 
 import { bytesToString, ip } from '@/lib/formatters';
 
 import { Server } from '@/api/server/getServer';
 import getServerResourceUsage, { ServerPowerState, ServerStats } from '@/api/server/getServerResourceUsage';
 
-// Determines if the current value is in an alarm threshold so we can show it in red rather
-// than the more faded default style.
-const isAlarmState = (current: number, limit: number): boolean => limit > 0 && current / (limit * 1024 * 1024) >= 0.9;
-
-const StatusIndicatorBox = styled.div<{ $status: ServerPowerState | undefined }>`
-    background: #ffffff11;
-    border: 1px solid #ffffff12;
-    transition: all 250ms ease-in-out;
-    padding: 1.75rem 2rem;
-    cursor: pointer;
-    border-radius: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: relative;
-
-    &:hover {
-        border: 1px solid #ffffff19;
-        background: #ffffff19;
-        transition-duration: 0ms;
-    }
-
-    & .status-bar {
-        width: 12px;
-        height: 12px;
-        min-width: 12px;
-        min-height: 12px;
-        background-color: #ffffff11;
-        z-index: 20;
-        border-radius: 9999px;
-        transition: all 250ms ease-in-out;
-
-        box-shadow: ${({ $status }) =>
-            !$status || $status === 'offline'
-                ? '0 0 12px 1px #C74343'
-                : $status === 'running'
-                  ? '0 0 12px 1px #43C760'
-                  : '0 0 12px 1px #c7aa43'};
-
-        background: ${({ $status }) =>
-            !$status || $status === 'offline'
-                ? `linear-gradient(180deg, #C74343 0%, #C74343 100%)`
-                : $status === 'running'
-                  ? `linear-gradient(180deg, #91FFA9 0%, #43C760 100%)`
-                  : `linear-gradient(180deg, #c7aa43 0%, #c7aa43 100%)`};
-    }
-`;
-
-type Timer = ReturnType<typeof setInterval>;
-
 const ServerRow = ({ server, className }: { server: Server; className?: string }) => {
-    const interval = useRef<Timer>(null) as React.MutableRefObject<Timer>;
+    const interval = useRef<NodeJS.Timeout | null>(null);
     const [isSuspended, setIsSuspended] = useState(server.status === 'suspended');
     const [stats, setStats] = useState<ServerStats | null>(null);
+
+    const isGrid = className?.includes('flex-col');
 
     const getStats = () =>
         getServerResourceUsage(server.uuid)
@@ -72,115 +25,164 @@ const ServerRow = ({ server, className }: { server: Server; className?: string }
     }, [stats?.isSuspended, server.status]);
 
     useEffect(() => {
-        // Don't waste a HTTP request if there is nothing important to show to the user because
-        // the server is suspended.
         if (isSuspended) return;
-
         getStats().then(() => {
             interval.current = setInterval(() => getStats(), 30000);
         });
-
         return () => {
             if (interval.current) clearInterval(interval.current);
         };
     }, [isSuspended]);
 
-    const alarms = { cpu: false, memory: false, disk: false };
-    if (stats) {
-        alarms.cpu = server.limits.cpu === 0 ? false : stats.cpuUsagePercent >= server.limits.cpu * 0.9;
-        alarms.memory = isAlarmState(stats.memoryUsageInBytes, server.limits.memory);
-        alarms.disk = server.limits.disk === 0 ? false : isAlarmState(stats.diskUsageInBytes, server.limits.disk);
-    }
+    const getStatusBadge = (status: ServerPowerState | undefined) => {
+        if (isSuspended) return { label: 'Suspendu', css: 'bg-red-500/20 text-red-400 border-red-500/30' };
 
-    // const diskLimit = server.limits.disk !== 0 ? bytesToString(mbToBytes(server.limits.disk)) : 'Unlimited';
-    // const memoryLimit = server.limits.memory !== 0 ? bytesToString(mbToBytes(server.limits.memory)) : 'Unlimited';
-    // const cpuLimit = server.limits.cpu !== 0 ? server.limits.cpu + ' %' : 'Unlimited';
+        switch (status) {
+            case 'running':
+                return { label: 'En ligne', css: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+            case 'starting':
+                return { label: 'Démarrage', css: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+            case 'stopping':
+                return { label: 'Arrêt en cours', css: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+            default:
+                return { label: 'Hors-ligne', css: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30' };
+        }
+    };
+
+    const statusBadge = getStatusBadge(stats?.status);
 
     return (
-        <StatusIndicatorBox as={Link} to={`/server/${server.id}`} className={className} $status={stats?.status}>
-            <div className={`flex items-center`}>
-                {/* <div className={'icon mr-4'}>
-                    <FontAwesomeIcon icon={faServer} />
-                </div> */}
-                <div className='flex flex-col'>
-                    <div className='flex items-center gap-2'>
-                        <p className={`text-xl tracking-tight font-bold break-words`}>{server.name}</p>{' '}
-                        <div className={'status-bar'} />
+        <Link
+            to={`/server/${server.id}`}
+            className={clsx(
+                'group relative flex overflow-hidden transition-all duration-300',
+                'rounded-2xl border border-white/5 hover:border-white/20',
+                isGrid ? 'flex-col min-h-[200px]' : 'flex-row items-center justify-between gap-4 p-5',
+                className,
+            )}
+        >
+            <div
+                className='absolute inset-0 z-0'
+                style={{
+                    backgroundImage: `url(${server.nest?.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            />
+            <div
+                className='absolute inset-0 z-0'
+                style={{
+                    backgroundImage: `url(${server.nest?.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            />
+            <div className='absolute inset-0 z-10 bg-zinc-950/70 backdrop-blur-[2px] group-hover:bg-zinc-950/50 transition-colors' />
+
+            {/* Top Section */}
+            <div className={clsx('relative z-20 flex items-center gap-4', isGrid ? 'w-full p-5' : 'min-w-0')}>
+                <div className='p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/10'>
+                    <ServerIcon className='text-white' width={24} height={24} />
+                </div>
+
+                <div className='flex flex-col min-w-0 flex-1'>
+                    <div className='flex items-center gap-3'>
+                        <h3 className='text-lg font-bold text-white truncate drop-shadow-md'>{server.name}</h3>
+
+                        {/* Status badge */}
+                        <div
+                            className={clsx(
+                                'px-2 py-0.5 rounded-md border text-[10px] font-black uppercase tracking-wider backdrop-blur-md',
+                                statusBadge.css,
+                            )}
+                        >
+                            {statusBadge.label}
+                        </div>
                     </div>
-                    <p className={`text-sm text-[#ffffff66]`}>
-                        {server.allocations
-                            .filter((alloc) => alloc.isDefault)
-                            .map((allocation) => (
-                                <Fragment key={allocation.ip + allocation.port.toString()}>
-                                    {allocation.alias || ip(allocation.ip)}:{allocation.port}
-                                </Fragment>
-                            ))}
+                    <p className='text-xs font-mono text-zinc-300 mt-1'>
+                        {server.allocations.find((a) => a.isDefault)?.alias ||
+                            ip(server.allocations.find((a) => a.isDefault)?.ip || '')}
+                        :{server.allocations.find((a) => a.isDefault)?.port}
                     </p>
-                    {/* I don't think servers will ever have descriptions normall so I'll vaporize it */}
-                    {/* {!!server.description && <p className={`text-sm text-zinc-300 break-words `}>{server.description}</p>} */}
                 </div>
             </div>
+
+            {/* Bottom/Right Section: Stats */}
             <div
-                style={{
-                    background:
-                        'radial-gradient(124.75% 124.75% at 50.01% -10.55%, rgb(36, 36, 36) 0%, rgb(20, 20, 20) 100%)',
-                }}
-                className={`h-full hidden sm:flex items-center justify-center border-[1px] border-[#ffffff12] shadow-md rounded-lg w-fit whitespace-nowrap px-4 py-2 text-sm gap-4`}
+                className={clsx(
+                    'relative z-20 flex items-center',
+                    isGrid
+                        ? 'w-full px-5 py-4 mt-auto bg-black/40 backdrop-blur-md border-t border-white/10 justify-between'
+                        : 'sm:w-auto justify-end',
+                )}
             >
                 {!stats || isSuspended ? (
-                    isSuspended ? (
-                        <div className={`flex-1 text-center`}>
-                            <span className={`text-red-100 text-xs`}>
-                                {server.status === 'suspended' ? 'Suspended' : 'Connection Error'}
-                            </span>
-                        </div>
-                    ) : server.isTransferring || server.status ? (
-                        <div className={`flex-1 text-center`}>
-                            <span className={`text-zinc-100 text-xs`}>
-                                {server.isTransferring
-                                    ? 'Transferring'
-                                    : server.status === 'installing'
-                                      ? 'Installing'
-                                      : server.status === 'restoring_backup'
-                                        ? 'Restoring Backup'
-                                        : 'Unavailable'}
-                            </span>
-                        </div>
-                    ) : (
-                        // <Spinner size={'small'} />
-                        // <></>
-                        <div className='text-xs opacity-25'>Sit tight!</div>
-                    )
+                    <div className='px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white bg-red-500/40 backdrop-blur-md border border-white/20 rounded-lg'>
+                        {isSuspended
+                            ? 'Suspendu'
+                            : server.status === 'install_failed'
+                              ? 'Installation échouée'
+                              : server.status === 'installing'
+                                ? 'Installation en cours'
+                                : server.status === 'restoring_backup'
+                                  ? 'Restauration de sauvegarde'
+                                  : server.status === 'reinstall_failed'
+                                    ? 'Réinstallation échouée'
+                                    : server.status === 'suspended'
+                                      ? 'Suspendu'
+                                      : 'Hors-ligne'}
+                    </div>
                 ) : (
-                    <Fragment>
-                        <div className={`sm:flex hidden`}>
-                            <div className={`flex justify-center gap-2 w-fit`}>
-                                <p className='text-xs text-zinc-400 font-medium w-fit whitespace-nowrap'>CPU</p>
-                                <p className='text-xs font-bold w-fit whitespace-nowrap'>
-                                    {stats.cpuUsagePercent.toFixed(2)}%
-                                </p>
-                            </div>
-                        </div>
-                        <div className={`sm:flex hidden`}>
-                            <div className={`flex justify-center gap-2 w-fit`}>
-                                <p className='text-xs text-zinc-400 font-medium w-fit whitespace-nowrap'>RAM</p>
-                                <p className='text-xs font-bold w-fit whitespace-nowrap'>
-                                    {bytesToString(stats.memoryUsageInBytes, 0)}
-                                </p>
-                            </div>
-                        </div>
-                        <div className={`sm:flex hidden`}>
-                            <div className={`flex justify-center gap-2 w-fit`}>
-                                <p className='text-xs text-zinc-400 font-medium w-fit whitespace-nowrap'>Storage</p>
-                                <p className='text-xs font-bold w-fit whitespace-nowrap'>
-                                    {bytesToString(stats.diskUsageInBytes, 0)}
-                                </p>
-                            </div>
-                        </div>
-                    </Fragment>
+                    <div className={clsx('flex gap-4', isGrid ? 'w-full justify-around' : 'justify-end')}>
+                        <GridStat
+                            label='CPU'
+                            value={`${stats.cpuUsagePercent.toFixed(0)}%`}
+                            color='text-purple-300'
+                            isGrid={isGrid}
+                        />
+                        <GridStat
+                            label='RAM'
+                            value={bytesToString(stats.memoryUsageInBytes, 0)}
+                            color='text-emerald-300'
+                            isGrid={isGrid}
+                        />
+                        <GridStat
+                            label='DISK'
+                            value={bytesToString(stats.diskUsageInBytes, 0)}
+                            color='text-amber-300'
+                            isGrid={isGrid}
+                        />
+                    </div>
                 )}
             </div>
-        </StatusIndicatorBox>
+        </Link>
+    );
+};
+
+const GridStat = ({
+    label,
+    value,
+    color,
+    isGrid,
+}: {
+    label: string;
+    value: string;
+    color: string;
+    isGrid?: boolean;
+}) => {
+    if (isGrid) {
+        return (
+            <div className='flex flex-col items-center gap-1'>
+                <span className='text-[10px] font-bold text-zinc-500 uppercase tracking-tighter'>{label}</span>
+                <span className={clsx('text-sm font-mono font-bold', color)}>{value}</span>
+            </div>
+        );
+    }
+    return (
+        <div className='flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/20 border border-white/5'>
+            <span className='text-[9px] uppercase font-black text-zinc-500 tracking-tighter'>{label}</span>
+            <span className={clsx('text-xs font-mono font-bold', color)}>{value}</span>
+        </div>
     );
 };
 

@@ -1,19 +1,13 @@
 {
-    "name": "pyrodactyl-oss/pyrodactyl",
-    "description": "Pyrodactyl is the Pterodactyl-based game server panel that's faster, smaller, safer, and more accessible.",
+    "name": "h-heberg/hdactyl",
+    "description": "HDactyl is the Pyrodactyl-based game server panel that's faster, smaller, safer, and more accessible.",
     "license": "AGPL-3.0-or-later",
     "authors": [
         {
-            "name": "Pyrodactyl-Oss",
-            "email": "me@pyrodactyl.dev",
-            "homepage": "https://pyrodactyl.dev",
+            "name": "H-Heberg",
+            "email": "me@h-heberg.fr",
+            "homepage": "https://h-heberg.fr",
             "role": "Maintainer"
-        },
-        {
-            "name": "Pyro Host Inc.",
-            "email": "team@pyro.host",
-            "homepage": "https://pyro.host",
-            "role": "Former Maintainer"
         }
     ],
     "require": {

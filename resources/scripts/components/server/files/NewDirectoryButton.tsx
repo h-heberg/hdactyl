@@ -1,3 +1,4 @@
+import { FolderPlus } from '@gravity-ui/icons';
 import { Form, Formik, FormikHelpers } from 'formik';
 import { join } from 'pathe';
 import { useContext, useEffect, useState } from 'react';
@@ -13,7 +14,6 @@ import asDialog from '@/hoc/asDialog';
 
 import createDirectory from '@/api/server/files/createDirectory';
 
-// import { FileObject } from '@/api/server/files/loadDirectory';
 import { ServerContext } from '@/state/server';
 
 import useFileManagerSwr from '@/plugins/useFileManagerSwr';
@@ -24,28 +24,14 @@ interface Values {
 }
 
 const schema = object().shape({
-    directoryName: string().required('A valid directory name must be provided.'),
+    directoryName: string()
+        .required('Un nom de dossier est requis.')
+        .min(1, 'Le nom est trop court.')
+        .matches(/^[^\\/:"*?<>\\|]+$/, 'Le nom contient des caractères invalides.'),
 });
 
-// removed to prevent linting issues, you're welcome.
-//
-// const generateDirectoryData = (name: string): FileObject => ({
-//     key: `dir_${name.split('/', 1)[0] ?? name}`,
-//     name: name.replace(/^(\/*)/, '').split('/', 1)[0] ?? name,
-//     mode: 'drwxr-xr-x',
-//     modeBits: '0755',
-//     size: 0,
-//     isFile: false,
-//     isSymlink: false,
-//     mimetype: '',
-//     createdAt: new Date(),
-//     modifiedAt: new Date(),
-//     isArchiveType: () => false,
-//     isEditable: () => false,
-// });
-
 const NewDirectoryDialog = asDialog({
-    title: 'New Folder',
+    title: 'Nouveau dossier',
 })(() => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const directory = ServerContext.useStoreState((state) => state.files.directory);
@@ -55,14 +41,11 @@ const NewDirectoryDialog = asDialog({
     const { clearAndAddHttpError } = useFlashKey('files:directory-modal');
 
     useEffect(() => {
-        return () => {
-            clearAndAddHttpError();
-        };
-    }, []);
+        return () => clearAndAddHttpError();
+    }, [clearAndAddHttpError]);
 
     const submit = ({ directoryName }: Values, { setSubmitting }: FormikHelpers<Values>) => {
         createDirectory(uuid, directory, directoryName)
-            // .then(() => mutate((data) => [...data!, generateDirectoryData(directoryName)], false))
             .then(() => mutate())
             .then(() => close())
             .catch((error) => {
@@ -73,27 +56,33 @@ const NewDirectoryDialog = asDialog({
 
     return (
         <Formik onSubmit={submit} validationSchema={schema} initialValues={{ directoryName: '' }}>
-            {({ submitForm, values }) => (
+            {({ submitForm, values, isSubmitting }) => (
                 <>
                     <FlashMessageRender byKey='files:directory-modal' />
-                    <Form className={`m-0`}>
-                        <Field autoFocus id={'directoryName'} name={'directoryName'} label={'Name'} />
-                        <p className={`mt-2 text-xs! break-all`}>
-                            <span className={`text-zinc-200`}>This folder will be created as&nbsp;</span>
-                            <Code>
-                                /root/
-                                <span className={`text-blue-200`}>
-                                    {join(directory, values.directoryName).replace(/^(\.\.\/|\/)+/, '')}
+                    <Form className='m-0'>
+                        <Field
+                            autoFocus
+                            id='directoryName'
+                            name='directoryName'
+                            label='Nom du dossier'
+                            placeholder='ex: logs, backups...'
+                        />
+                        <div className='mt-4 p-3 bg-neutral-900/50 border border-white/5 rounded-lg'>
+                            <p className='text-xs text-neutral-400 mb-1'>Chemin de destination :</p>
+                            <Code className='text-[10px] break-all opacity-80'>
+                                <span className='text-neutral-500'>/root/</span>
+                                <span className='text-brand-400'>
+                                    {join(directory, values.directoryName).replace(/^(\.\.\/|\/)+/, '') || './'}
                                 </span>
                             </Code>
-                        </p>
+                        </div>
                     </Form>
                     <Dialog.Footer>
-                        <ActionButton variant='secondary' className={'w-full sm:w-auto'} onClick={close}>
-                            Cancel
+                        <ActionButton variant='secondary' onClick={close} disabled={isSubmitting}>
+                            Annuler
                         </ActionButton>
-                        <ActionButton variant='primary' className={'w-full sm:w-auto'} onClick={submitForm}>
-                            Create
+                        <ActionButton variant='primary' onClick={submitForm} disabled={isSubmitting}>
+                            Créer le dossier
                         </ActionButton>
                     </Dialog.Footer>
                 </>
@@ -107,9 +96,10 @@ const NewDirectoryButton = () => {
 
     return (
         <>
-            <NewDirectoryDialog open={open} onClose={setOpen.bind(this, false)} />
-            <ActionButton variant='secondary' onClick={setOpen.bind(this, true)}>
-                New Folder
+            <NewDirectoryDialog open={open} onClose={() => setOpen(false)} />
+            <ActionButton variant='secondary' onClick={() => setOpen(true)} className='flex items-center gap-2'>
+                <FolderPlus className='w-4 h-4' />
+                Nouveau dossier
             </ActionButton>
         </>
     );

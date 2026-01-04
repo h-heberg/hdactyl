@@ -1,5 +1,6 @@
+import { Globe, Plus } from '@gravity-ui/icons';
 import { For } from 'million/react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import isEqual from 'react-fast-compare';
 
 import FlashMessageRender from '@/components/FlashMessageRender';
@@ -9,7 +10,6 @@ import { MainPageHeader } from '@/components/elements/MainPageHeader';
 import ServerContentBlock from '@/components/elements/ServerContentBlock';
 import { PageListContainer } from '@/components/elements/pages/PageList';
 import AllocationRow from '@/components/server/network/AllocationRow';
-import SubdomainManagement from '@/components/server/network/SubdomainManagement';
 
 import createServerAllocation from '@/api/server/network/createServerAllocation';
 import getServerAllocations from '@/api/swr/getServerAllocations';
@@ -20,7 +20,6 @@ import { useDeepCompareEffect } from '@/plugins/useDeepCompareEffect';
 import { useFlashKey } from '@/plugins/useFlash';
 
 const NetworkContainer = () => {
-    const [_, setLoading] = useState(false);
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const allocationLimit = ServerContext.useStoreState((state) => state.server.data!.featureLimits.allocations);
     const allocations = ServerContext.useStoreState((state) => state.server.data!.allocations, isEqual);
@@ -31,74 +30,81 @@ const NetworkContainer = () => {
 
     useEffect(() => {
         mutate(allocations);
-    }, []);
+    }, [mutate, allocations]);
 
     useEffect(() => {
         clearAndAddHttpError(error);
-    }, [error]);
+    }, [clearAndAddHttpError, error]);
 
     useDeepCompareEffect(() => {
         if (!data) return;
-
         setServerFromState((state) => ({ ...state, allocations: data }));
     }, [data]);
 
     const onCreateAllocation = () => {
         clearFlashes();
-
-        setLoading(true);
         createServerAllocation(uuid)
             .then((allocation) => {
                 setServerFromState((s) => ({ ...s, allocations: s.allocations.concat(allocation) }));
                 return mutate(data?.concat(allocation), false);
             })
-            .catch((error) => clearAndAddHttpError(error))
-            .then(() => setLoading(false));
+            .catch((error) => clearAndAddHttpError(error));
     };
 
     return (
         <ServerContentBlock title={'Network'}>
             <FlashMessageRender byKey={'server:network'} />
 
-            <MainPageHeader direction='column' title={'Networking'}>
-                <p className='text-sm text-neutral-400 leading-relaxed'>
+            <MainPageHeader title={'Networking'}>
+                <p className='text-sm text-zinc-400 leading-relaxed max-w-2xl'>
                     Configure network settings for your server. Manage subdomains, IP addresses and ports that your
                     server can bind to for incoming connections.
                 </p>
             </MainPageHeader>
 
-            <div className='space-y-12'>
-                <SubdomainManagement />
+            <div className='mt-10'>
+                <div className='bg-zinc-950/40 backdrop-blur-xl border border-white/5 rounded-[24px] overflow-hidden shadow-2xl transition-all duration-300'>
+                    {/* Header interne au bloc */}
+                    <div className='p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]'>
+                        <div className='flex items-center gap-4'>
+                            <div className='w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400'>
+                                <Globe width={20} height={20} />
+                            </div>
+                            <div>
+                                <h3 className='text-sm font-bold uppercase tracking-widest text-zinc-200'>
+                                    Port Allocations
+                                </h3>
+                                <p className='text-[11px] text-zinc-500 font-medium'>Manage incoming port bindings</p>
+                            </div>
+                        </div>
 
-                <div className='bg-gradient-to-b from-[#ffffff08] to-[#ffffff05] border-[1px] border-[#ffffff12] rounded-xl p-6 shadow-sm mt-8'>
-                    <div className='flex items-center justify-between mb-6'>
-                        <h3 className='text-xl font-extrabold tracking-tight'>Port Allocations</h3>
                         {data && (
                             <Can action={'allocation.create'}>
                                 <div className='flex items-center gap-4'>
-                                    {allocationLimit === null && (
-                                        <span className='text-sm text-zinc-400 bg-[#ffffff08] px-3 py-1 rounded-lg border border-[#ffffff15]'>
-                                            {data.filter((allocation) => !allocation.isDefault).length} allocations
-                                            (unlimited)
-                                        </span>
-                                    )}
-                                    {allocationLimit > 0 && (
-                                        <span className='text-sm text-zinc-400 bg-[#ffffff08] px-3 py-1 rounded-lg border border-[#ffffff15]'>
-                                            {data.filter((allocation) => !allocation.isDefault).length} of{' '}
-                                            {allocationLimit}
-                                        </span>
-                                    )}
-                                    {allocationLimit === 0 && (
-                                        <span className='text-sm text-red-400 bg-[#ffffff08] px-3 py-1 rounded-lg border border-[#ffffff15]'>
-                                            Allocations disabled
-                                        </span>
-                                    )}
+                                    <div className='hidden sm:flex items-center px-3 py-1.5 rounded-full bg-zinc-900/50 border border-white/5 text-[11px] font-bold text-zinc-400 uppercase tracking-tighter'>
+                                        {allocationLimit === null ? (
+                                            <span>{data.filter((a) => !a.isDefault).length} / ∞</span>
+                                        ) : allocationLimit === 0 ? (
+                                            <span className='text-red-400'>Désactivé</span>
+                                        ) : (
+                                            <span>
+                                                {data.filter((a) => !a.isDefault).length} sur {allocationLimit} utilisés
+                                            </span>
+                                        )}
+                                    </div>
+
                                     {(allocationLimit === null ||
                                         (allocationLimit > 0 &&
-                                            allocationLimit >
-                                                data.filter((allocation) => !allocation.isDefault).length)) && (
-                                        <ActionButton variant='primary' onClick={onCreateAllocation} size='sm'>
-                                            New Allocation
+                                            allocationLimit > data.filter((a) => !a.isDefault).length)) && (
+                                        <ActionButton
+                                            variant='primary'
+                                            onClick={onCreateAllocation}
+                                            className='group !rounded-full !px-5 !py-2 flex items-center gap-2'
+                                        >
+                                            <Plus width={16} height={16} />
+                                            <span className='text-xs font-bold uppercase tracking-wider'>
+                                                Ajouter une allocation
+                                            </span>
                                         </ActionButton>
                                     )}
                                 </div>
@@ -106,47 +112,44 @@ const NetworkContainer = () => {
                         )}
                     </div>
 
-                    {!data ? (
-                        <div className='flex items-center justify-center py-12'>
-                            <div className='flex flex-col items-center gap-3'>
-                                <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-brand'></div>
-                                <p className='text-sm text-neutral-400'>Loading allocations...</p>
-                            </div>
-                        </div>
-                    ) : data.length > 0 ? (
-                        <PageListContainer data-pyro-network-container-allocations>
-                            <For each={data} memo>
-                                {(allocation) => (
-                                    <AllocationRow
-                                        key={`${allocation.ip}:${allocation.port}`}
-                                        allocation={allocation}
-                                    />
-                                )}
-                            </For>
-                        </PageListContainer>
-                    ) : (
-                        <div className='flex flex-col items-center justify-center py-12'>
-                            <div className='text-center'>
-                                <div className='w-12 h-12 mx-auto mb-4 rounded-full bg-[#ffffff11] flex items-center justify-center'>
-                                    <svg className='w-6 h-6 text-zinc-400' fill='currentColor' viewBox='0 0 20 20'>
-                                        <path
-                                            fillRule='evenodd'
-                                            d='M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-                                            clipRule='evenodd'
-                                        />
-                                    </svg>
-                                </div>
-                                <h4 className='text-lg font-medium text-zinc-200 mb-2'>
-                                    {allocationLimit === 0 ? 'Allocations unavailable' : 'No allocations found'}
-                                </h4>
-                                <p className='text-sm text-zinc-400 max-w-sm text-center'>
-                                    {allocationLimit === 0
-                                        ? 'Network allocations cannot be created for this server.'
-                                        : 'Create your first allocation to get started.'}
+                    {/* Liste ou états vides */}
+                    <div className='p-2'>
+                        {!data ? (
+                            <div className='flex flex-col items-center justify-center py-20 gap-4'>
+                                <div className='animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-white/20 border-t-zinc-200'></div>
+                                <p className='text-xs font-bold uppercase tracking-[0.2em] text-zinc-500'>
+                                    Synchronizing...
                                 </p>
                             </div>
-                        </div>
-                    )}
+                        ) : data.length > 0 ? (
+                            <div className='space-y-1 p-2'>
+                                <PageListContainer>
+                                    <For each={data} memo>
+                                        {(allocation) => (
+                                            <AllocationRow
+                                                key={`${allocation.ip}:${allocation.port}`}
+                                                allocation={allocation}
+                                            />
+                                        )}
+                                    </For>
+                                </PageListContainer>
+                            </div>
+                        ) : (
+                            <div className='flex flex-col items-center justify-center py-24 px-6 text-center'>
+                                <div className='w-16 h-16 mb-6 rounded-[20px] bg-white/5 flex items-center justify-center border border-white/5'>
+                                    <Globe width={28} height={28} className='text-zinc-600' />
+                                </div>
+                                <h4 className='text-lg font-bold text-zinc-200 tracking-tight'>
+                                    {allocationLimit === 0 ? 'Allocations Restricted' : 'No Ports Assigned'}
+                                </h4>
+                                <p className='text-sm text-zinc-500 mt-2 max-w-[280px] leading-relaxed font-medium'>
+                                    {allocationLimit === 0
+                                        ? 'Your current plan does not allow for additional network allocations.'
+                                        : 'Every server needs at least one port to communicate with the world.'}
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </ServerContentBlock>

@@ -36,6 +36,7 @@ class NestTransformer extends BaseClientTransformer
             'author' => $model->author,
             'name' => $model->name,
             'description' => $model->description,
+            'image' => $model->image,
             'created_at' => $this->formatTimestamp($model->created_at),
             'updated_at' => $this->formatTimestamp($model->updated_at),
         ];

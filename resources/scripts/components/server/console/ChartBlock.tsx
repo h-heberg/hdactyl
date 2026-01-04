@@ -1,22 +1,41 @@
 import clsx from 'clsx';
 
-import styles from '@/components/server/console/style.module.css';
-
 interface ChartBlockProps {
     title: string;
+    icon?: React.ReactNode;
     legend?: React.ReactNode;
     children: React.ReactNode;
 }
 
 // eslint-disable-next-line react/display-name
-export default ({ title, legend, children }: ChartBlockProps) => (
-    <div className='bg-gradient-to-b from-[#ffffff08] to-[#ffffff05] border-[1px] border-[#ffffff12] rounded-xl p-3 sm:p-4 hover:border-[#ffffff20] transition-all duration-150 group h-full shadow-sm'>
-        <div className={'flex items-center justify-between mb-3 sm:mb-4'}>
-            <h3 className={'font-semibold text-sm text-zinc-100 group-hover:text-white transition-colors duration-150'}>
-                {title}
-            </h3>
-            {legend && <div className={'text-xs sm:text-sm flex items-center text-zinc-400'}>{legend}</div>}
+export default ({ title, icon, legend, children }: ChartBlockProps) => (
+    <div
+        className={
+            'bg-zinc-950/40 backdrop-blur-xl border border-white/5 rounded-[24px] p-5 transition-all duration-300 hover:border-white/10 hover:bg-zinc-950/60 shadow-2xl group'
+        }
+    >
+        <div className={'flex items-center justify-between mb-6'}>
+            <div className='flex items-center gap-3'>
+                {icon && (
+                    <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 text-zinc-400 group-hover:text-white group-hover:bg-white/10 transition-all duration-300'>
+                        {icon}
+                    </div>
+                )}
+                <div className='flex flex-col gap-0.5'>
+                    <h3
+                        className={
+                            'text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 group-hover:text-zinc-300 transition-colors'
+                        }
+                    >
+                        {title}
+                    </h3>
+                    <div className='h-0.5 w-4 bg-white/10 rounded-full group-hover:w-8 group-hover:bg-white/20 transition-all duration-500' />
+                </div>
+            </div>
+
+            {legend && <div className={'flex items-center gap-3'}>{legend}</div>}
         </div>
-        <div className={'z-10 overflow-hidden rounded-lg h-40 sm:h-48'}>{children}</div>
+
+        <div className={'relative w-full h-40 sm:h-44'}>{children}</div>
     </div>
 );

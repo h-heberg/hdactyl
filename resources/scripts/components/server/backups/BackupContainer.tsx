@@ -1,4 +1,4 @@
-import { ArrowDownToLine } from '@gravity-ui/icons';
+import { ArrowDownToLine, Plus } from '@gravity-ui/icons';
 import { useStoreState } from 'easy-peasy';
 import { Form, Formik, Field as FormikField, FormikHelpers, useFormikContext } from 'formik';
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
@@ -294,8 +294,8 @@ const BackupContainer = () => {
         return (
             <ServerContentBlock title={'Backups'}>
                 <FlashMessageRender byKey={'backups'} />
-                <MainPageHeader direction='column' title={'Backups'}>
-                    <p className='text-sm text-neutral-400 leading-relaxed'>
+                <MainPageHeader title={'Backups'}>
+                    <p className='text-sm text-zinc-400 leading-relaxed max-w-2xl'>
                         Create and manage server backups to protect your data. Schedule automated backups, download
                         existing ones, and restore when needed.
                     </p>
@@ -310,116 +310,8 @@ const BackupContainer = () => {
     return (
         <ServerContentBlock title={'Backups'}>
             <FlashMessageRender byKey={'backups'} />
-            <MainPageHeader
-                direction='column'
-                title={'Backups'}
-                titleChildren={
-                    <Can action={'backup.create'}>
-                        <div className='flex flex-col sm:flex-row items-center justify-end gap-4'>
-                            <div className='flex flex-col gap-1 text-center sm:text-right'>
-                                {/* Backup Count Display */}
-                                {backupLimit === null && <p className='text-sm text-zinc-300'>{backupCount} backups</p>}
-                                {backupLimit > 0 && (
-                                    <p className='text-sm text-zinc-300'>
-                                        {backupCount} of {backupLimit} backups
-                                    </p>
-                                )}
-                                {backupLimit === 0 && <p className='text-sm text-red-400'>Backups disabled</p>}
-
-                                {/* Storage Usage Display */}
-                                {storage && (
-                                    <div className='flex flex-col gap-0.5'>
-                                        {backupStorageLimit === null ? (
-                                            <>
-                                                <p
-                                                    className='text-sm text-zinc-300 cursor-help'
-                                                    title={`${storage.used_mb?.toFixed(2) || 0}MB total (Repository: ${storage.repository_usage_mb?.toFixed(2) || 0}MB, Legacy: ${storage.legacy_usage_mb?.toFixed(2) || 0}MB)`}
-                                                >
-                                                    <span className='font-medium'>
-                                                        {formatStorage(storage.used_mb)}
-                                                    </span>{' '}
-                                                    storage used
-                                                </p>
-                                                {(storage.repository_usage_mb > 0 || storage.legacy_usage_mb > 0) &&
-                                                    storage.repository_usage_mb > 0 &&
-                                                    storage.legacy_usage_mb > 0 && (
-                                                        <p className='text-xs text-zinc-400'>
-                                                            {storage.repository_usage_mb > 0 &&
-                                                                `${formatStorage(storage.repository_usage_mb)} deduplicated`}
-                                                            {storage.repository_usage_mb > 0 &&
-                                                                storage.legacy_usage_mb > 0 &&
-                                                                ' + '}
-                                                            {storage.legacy_usage_mb > 0 &&
-                                                                `${formatStorage(storage.legacy_usage_mb)} legacy`}
-                                                        </p>
-                                                    )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <p
-                                                    className='text-sm text-zinc-300 cursor-help'
-                                                    title={`${storage.used_mb?.toFixed(2) || 0}MB used of ${backupStorageLimit}MB (Repository: ${storage.repository_usage_mb?.toFixed(2) || 0}MB, Legacy: ${storage.legacy_usage_mb?.toFixed(2) || 0}MB, ${storage.available_mb?.toFixed(2) || 0}MB Available)`}
-                                                >
-                                                    <span className='font-medium'>
-                                                        {formatStorage(storage.used_mb)}
-                                                    </span>{' '}
-                                                    {backupStorageLimit === null ? (
-                                                        'used'
-                                                    ) : (
-                                                        <span className='font-medium'>
-                                                            of {formatStorage(backupStorageLimit)} used
-                                                        </span>
-                                                    )}
-                                                </p>
-                                                {(storage.repository_usage_mb > 0 || storage.legacy_usage_mb > 0) &&
-                                                    storage.repository_usage_mb > 0 &&
-                                                    storage.legacy_usage_mb > 0 && (
-                                                        <p className='text-xs text-zinc-400'>
-                                                            {storage.repository_usage_mb > 0 &&
-                                                                `${formatStorage(storage.repository_usage_mb)} deduplicated`}
-                                                            {storage.repository_usage_mb > 0 &&
-                                                                storage.legacy_usage_mb > 0 &&
-                                                                ' + '}
-                                                            {storage.legacy_usage_mb > 0 &&
-                                                                `${formatStorage(storage.legacy_usage_mb)} legacy`}
-                                                        </p>
-                                                    )}
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            <div className='flex gap-2'>
-                                {backupCount > 0 && (
-                                    <ActionButton variant='danger' onClick={() => setDeleteAllModalVisible(true)}>
-                                        <svg
-                                            className='w-4 h-4 mr-2'
-                                            fill='none'
-                                            viewBox='0 0 24 24'
-                                            stroke='currentColor'
-                                        >
-                                            <path
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
-                                                strokeWidth={2}
-                                                d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-                                            />
-                                        </svg>
-                                        Delete All Backups
-                                    </ActionButton>
-                                )}
-                                {(backupLimit === null || backupLimit > backupCount) &&
-                                    (!backupStorageLimit || !storage?.is_over_limit) && (
-                                        <ActionButton variant='primary' onClick={() => setCreateModalVisible(true)}>
-                                            New Backup
-                                        </ActionButton>
-                                    )}
-                            </div>
-                        </div>
-                    </Can>
-                }
-            >
-                <p className='text-sm text-neutral-400 leading-relaxed'>
+            <MainPageHeader title={'Backups'}>
+                <p className='text-sm text-zinc-400 leading-relaxed max-w-2xl'>
                     Create and manage server backups to protect your data. Schedule automated backups, download existing
                     ones, and restore when needed.
                 </p>
@@ -646,32 +538,99 @@ const BackupContainer = () => {
                 </Modal>
             )}
 
-            {backups.length === 0 ? (
-                <div className='flex flex-col items-center justify-center min-h-[60vh] py-12 px-4'>
-                    <div className='text-center'>
-                        <div className='w-16 h-16 mx-auto mb-4 rounded-full bg-[#ffffff11] flex items-center justify-center'>
-                            <ArrowDownToLine
-                                width={22}
-                                height={22}
-                                className='w-6 h-6 text-zinc-400'
-                                fill=' currentColor'
-                            />
+            <div className='mt-10'>
+                <div className='bg-zinc-950/40 backdrop-blur-xl border border-white/5 rounded-[24px] overflow-hidden shadow-2xl transition-all duration-300'>
+                    {/* Header interne au bloc */}
+                    <div className='p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]'>
+                        <div className='flex items-center gap-4'>
+                            <div className='w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400'>
+                                <ArrowDownToLine width={20} height={20} />
+                            </div>
+                            <div>
+                                <h3 className='text-sm font-bold uppercase tracking-widest text-zinc-200'>
+                                    Server Backups
+                                </h3>
+                                <p className='text-[11px] text-zinc-500 font-medium'>
+                                    Manage backups and restore points
+                                </p>
+                            </div>
                         </div>
-                        <h3 className='text-lg font-medium text-zinc-200 mb-2'>
-                            {backupLimit === 0 ? 'Backups unavailable' : 'No backups found'}
-                        </h3>
-                        <p className='text-sm text-zinc-400 max-w-sm'>
-                            {backupLimit === 0
-                                ? 'Backups cannot be created for this server.'
-                                : 'Your server does not have any backups. Create one to get started.'}
-                        </p>
+
+                        <Can action={'backup.create'}>
+                            <div className='flex items-center gap-4'>
+                                {/* Backup Count & Storage Display */}
+                                <div className='hidden sm:flex flex-col gap-1 items-end'>
+                                    <div className='flex items-center px-3 py-1.5 rounded-full bg-zinc-900/50 border border-white/5 text-[11px] font-bold text-zinc-400 uppercase tracking-tighter'>
+                                        {backupLimit === null ? (
+                                            <span>{backupCount} / ∞</span>
+                                        ) : backupLimit === 0 ? (
+                                            <span className='text-red-400'>Disabled</span>
+                                        ) : (
+                                            <span>
+                                                {backupCount} / {backupLimit}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {storage && (
+                                        <div
+                                            className='text-[10px] text-zinc-500 font-medium cursor-help'
+                                            title={`${storage.used_mb?.toFixed(2) || 0}MB total (Repository: ${storage.repository_usage_mb?.toFixed(2) || 0}MB, Legacy: ${storage.legacy_usage_mb?.toFixed(2) || 0}MB)`}
+                                        >
+                                            {formatStorage(storage.used_mb)}
+                                            {backupStorageLimit && ` / ${formatStorage(backupStorageLimit)}`}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className='flex gap-2'>
+                                    {backupCount > 0 && (
+                                        <ActionButton
+                                            variant='danger'
+                                            onClick={() => setDeleteAllModalVisible(true)}
+                                            className='group !rounded-full !px-4 !py-2 flex items-center gap-2'
+                                        >
+                                            <svg
+                                                className='w-4 h-4'
+                                                fill='none'
+                                                viewBox='0 0 24 24'
+                                                stroke='currentColor'
+                                            >
+                                                <path
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                    strokeWidth={2}
+                                                    d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                                                />
+                                            </svg>
+                                            <span className='text-xs font-bold uppercase tracking-wider'>
+                                                Delete All
+                                            </span>
+                                        </ActionButton>
+                                    )}
+
+                                    {(backupLimit === null || backupLimit > backupCount) &&
+                                        (!backupStorageLimit || !storage?.is_over_limit) && (
+                                            <ActionButton
+                                                variant='primary'
+                                                onClick={() => setCreateModalVisible(true)}
+                                                className='group !rounded-full !px-5 !py-2 flex items-center gap-2'
+                                            >
+                                                <Plus width={16} height={16} />
+                                                <span className='text-xs font-bold uppercase tracking-wider'>
+                                                    New Backup
+                                                </span>
+                                            </ActionButton>
+                                        )}
+                                </div>
+                            </div>
+                        </Can>
                     </div>
-                </div>
-            ) : (
-                <>
+
                     {/* Bulk action bar */}
-                    {selectableBackups.length > 0 && (
-                        <div className='mb-8 flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#ffffff08] border border-zinc-700'>
+                    {selectableBackups.length > 0 && backups.length > 0 && (
+                        <div className='px-6 py-3.5 border-b border-white/5 bg-white/[0.01] flex items-center justify-between'>
                             <div className='flex items-center gap-4'>
                                 <Checkbox
                                     checked={
@@ -680,10 +639,10 @@ const BackupContainer = () => {
                                     }
                                     onCheckedChange={toggleSelectAll}
                                 />
-                                <span className='text-sm text-zinc-300'>
+                                <span className='text-xs font-bold uppercase tracking-wider text-zinc-400'>
                                     {selectedBackups.size > 0 ? (
                                         <>
-                                            <span className='font-medium'>{selectedBackups.size}</span> selected
+                                            <span className='text-zinc-200'>{selectedBackups.size}</span> selected
                                         </>
                                     ) : (
                                         'Select backups'
@@ -694,31 +653,66 @@ const BackupContainer = () => {
                             <div
                                 className={`flex items-center gap-3 transition-opacity ${selectedBackups.size > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                             >
-                                <ActionButton variant='secondary' onClick={clearSelection}>
-                                    Clear
+                                <ActionButton
+                                    variant='secondary'
+                                    onClick={clearSelection}
+                                    className='!rounded-full !px-4 !py-1.5'
+                                >
+                                    <span className='text-xs font-bold uppercase tracking-wider'>Clear</span>
                                 </ActionButton>
                                 <Can action='backup.delete'>
-                                    <ActionButton variant='danger' onClick={() => setBulkDeleteModalVisible(true)}>
-                                        Delete Selected ({selectedBackups.size})
+                                    <ActionButton
+                                        variant='danger'
+                                        onClick={() => setBulkDeleteModalVisible(true)}
+                                        className='!rounded-full !px-4 !py-1.5'
+                                    >
+                                        <span className='text-xs font-bold uppercase tracking-wider'>
+                                            Delete ({selectedBackups.size})
+                                        </span>
                                     </ActionButton>
                                 </Can>
                             </div>
                         </div>
                     )}
 
-                    <PageListContainer>
-                        {backups.map((backup) => (
-                            <BackupItem
-                                key={backup.uuid}
-                                backup={backup}
-                                isSelected={selectedBackups.has(backup.uuid)}
-                                onToggleSelect={() => toggleBackupSelection(backup.uuid)}
-                                isSelectable={selectableBackups.some((b) => b.uuid === backup.uuid)}
-                                retryBackup={retryBackup}
-                            />
-                        ))}
-                    </PageListContainer>
+                    {/* Liste ou états vides */}
+                    <div className='p-2'>
+                        {backups.length === 0 ? (
+                            <div className='flex flex-col items-center justify-center py-24 px-6 text-center'>
+                                <div className='w-16 h-16 mb-6 rounded-[20px] bg-white/5 flex items-center justify-center border border-white/5'>
+                                    <ArrowDownToLine width={28} height={28} className='text-zinc-600' />
+                                </div>
+                                <h4 className='text-lg font-bold text-zinc-200 tracking-tight'>
+                                    {backupLimit === 0 ? 'Backups Unavailable' : 'No Backups Found'}
+                                </h4>
+                                <p className='text-sm text-zinc-500 mt-2 max-w-[280px] leading-relaxed font-medium'>
+                                    {backupLimit === 0
+                                        ? 'Backups cannot be created for this server.'
+                                        : 'Your server does not have any backups. Create one to get started.'}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className='space-y-1 p-2'>
+                                <PageListContainer>
+                                    {backups.map((backup) => (
+                                        <BackupItem
+                                            key={backup.uuid}
+                                            backup={backup}
+                                            isSelected={selectedBackups.has(backup.uuid)}
+                                            onToggleSelect={() => toggleBackupSelection(backup.uuid)}
+                                            isSelectable={selectableBackups.some((b) => b.uuid === backup.uuid)}
+                                            retryBackup={retryBackup}
+                                        />
+                                    ))}
+                                </PageListContainer>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
 
+            {backups.length > 0 && (
+                <>
                     {pagination && pagination.currentPage && pagination.totalPages && pagination.totalPages > 1 && (
                         <Pagination data={{ items: backups, pagination }} onPageSelect={setPage}>
                             {() => null}

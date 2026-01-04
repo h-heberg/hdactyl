@@ -94,8 +94,9 @@ const AccountApiContainer = () => {
                 <Dialog.Confirm
                     open={showCreateModal}
                     onClose={() => setShowCreateModal(false)}
-                    title='Create API Key'
-                    confirm='Create Key'
+                    title='Créer une clé API'
+                    confirm='Créer la clé'
+                    variant='primary'
                     onConfirmed={() => {
                         const form = document.getElementById('create-api-form') as HTMLFormElement;
                         if (form) {
@@ -119,15 +120,15 @@ const AccountApiContainer = () => {
                                 <FormikFieldWrapper
                                     label='Description'
                                     name='description'
-                                    description='A description of this API key.'
+                                    description='Une description pour cette clé API (minimum 4 caractères).'
                                 >
                                     <Field name='description' as={Input} className='w-full' />
                                 </FormikFieldWrapper>
 
                                 <FormikFieldWrapper
-                                    label='Allowed IPs'
+                                    label='Adresses IP autorisées'
                                     name='allowedIps'
-                                    description='Leave blank to allow any IP address to use this API key, otherwise provide each IP address on a new line. Note: You can also use CIDR ranges here.'
+                                    description="Laissez vide pour autoriser n'importe quelle adresse IP à utiliser cette clé API, sinon fournissez chaque adresse IP sur une nouvelle ligne. Remarque : Vous pouvez également utiliser des plages CIDR ici."
                                 >
                                     <Field name='allowedIps' as={Input} className='w-full' />
                                 </FormikFieldWrapper>
@@ -149,7 +150,7 @@ const AccountApiContainer = () => {
                     }}
                 >
                     <MainPageHeader
-                        title='API Keys'
+                        title='Clés API'
                         titleChildren={
                             <ActionButton
                                 variant='primary'
@@ -157,7 +158,7 @@ const AccountApiContainer = () => {
                                 className='flex items-center gap-2'
                             >
                                 <Plus width={22} height={22} fill='currentColor' />
-                                Create API Key
+                                Créer une clé API
                             </ActionButton>
                         }
                     />
@@ -180,7 +181,7 @@ const AccountApiContainer = () => {
                             onClose={() => setDeleteIdentifier('')}
                             onConfirmed={() => doDeletion(deleteIdentifier)}
                         >
-                            All requests using the <Code>{deleteIdentifier}</Code> key will be invalidated.
+                            Toutes les requêtes utilisant la clé <Code>{deleteIdentifier}</Code> seront invalidées.
                         </Dialog.Confirm>
 
                         {keys.length === 0 ? (
@@ -188,11 +189,11 @@ const AccountApiContainer = () => {
                                 <div className='w-16 h-16 mx-auto mb-4 rounded-full bg-[#ffffff11] flex items-center justify-center'>
                                     <Key width={22} height={22} className='text-zinc-400' fill='currentColor' />
                                 </div>
-                                <h3 className='text-lg font-medium text-zinc-200 mb-2'>No API Keys</h3>
+                                <h3 className='text-lg font-medium text-zinc-200 mb-2'>Aucune clé API</h3>
                                 <p className='text-sm text-zinc-400 max-w-sm mx-auto'>
                                     {loading
-                                        ? 'Loading your API keys...'
-                                        : "You haven't created any API keys yet. Create one to get started with the API."}
+                                        ? 'Chargement de vos clés API...'
+                                        : "Vous n'avez pas encore créé de clés API. Créez-en une pour commencer à utiliser l'API."}
                                 </p>
                             </div>
                         ) : (
@@ -217,13 +218,13 @@ const AccountApiContainer = () => {
                                                     </div>
                                                     <div className='flex items-center gap-4 text-xs text-zinc-400'>
                                                         <span>
-                                                            Last used:{' '}
+                                                            Dernière utilisation :{' '}
                                                             {key.lastUsedAt
                                                                 ? format(key.lastUsedAt, 'MMM d, yyyy HH:mm')
-                                                                : 'Never'}
+                                                                : 'Jamais'}
                                                         </span>
                                                         <div className='flex items-center gap-2'>
-                                                            <span>Key:</span>
+                                                            <span>Clé :</span>
                                                             <code className='font-mono px-2 py-1 bg-[#ffffff08] border border-[#ffffff08] rounded text-zinc-300'>
                                                                 {showKeys[key.identifier]
                                                                     ? key.identifier

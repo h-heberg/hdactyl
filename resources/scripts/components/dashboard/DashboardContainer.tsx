@@ -27,9 +27,9 @@ import { MainPageHeader } from '../elements/MainPageHeader';
 
 const DashboardContainer = () => {
     const getTitle = () => {
-        if (serverViewMode === 'admin-all') return 'All Servers (Admin)';
-        if (serverViewMode === 'all') return 'All Accessible Servers';
-        return 'Your Servers';
+        if (serverViewMode === 'admin-all') return 'Tout les serveurs (Admin)';
+        if (serverViewMode === 'all') return 'Tout les serveurs';
+        return 'Vos serveurs';
     };
 
     const { search } = useLocation();
@@ -43,13 +43,14 @@ const DashboardContainer = () => {
 
     const [serverViewMode, setServerViewMode] = usePersistedState<'owner' | 'admin-all' | 'all'>(
         `${uuid}:server_view_mode`,
-        'owner',
+        rootAdmin ? 'admin-all' : 'owner',
     );
 
     const [dashboardDisplayOption, setDashboardDisplayOption] = usePersistedState(
         `${uuid}:dashboard_display_option`,
         'list',
     );
+
     const getApiType = (): string | undefined => {
         if (serverViewMode === 'owner') return 'owner';
         if (serverViewMode === 'admin-all') return 'admin-all';
@@ -117,7 +118,7 @@ const DashboardContainer = () => {
                                                 onSelect={() => setServerViewMode('owner')}
                                                 className={serverViewMode === 'owner' ? 'bg-accent/20' : ''}
                                             >
-                                                Your Servers Only
+                                                Vos serveurs
                                             </DropdownMenuItem>
 
                                             {rootAdmin && (
@@ -126,7 +127,7 @@ const DashboardContainer = () => {
                                                         onSelect={() => setServerViewMode('admin-all')}
                                                         className={serverViewMode === 'admin-all' ? 'bg-accent/20' : ''}
                                                     >
-                                                        All Servers (Admin)
+                                                        Tout les serveurs (Admin)
                                                     </DropdownMenuItem>
                                                 </>
                                             )}
@@ -134,16 +135,16 @@ const DashboardContainer = () => {
                                                 onSelect={() => setServerViewMode('all')}
                                                 className={serverViewMode === 'all' ? 'bg-accent/20' : ''}
                                             >
-                                                All Servers
+                                                Tout les serveurs
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
 
                                     <TabsList>
-                                        <TabsTrigger aria-label='View servers in a list layout.' value='list'>
+                                        <TabsTrigger aria-label='Voir les serveurs en liste' value='list'>
                                             <Bars width={18} height={20} color='white' />
                                         </TabsTrigger>
-                                        <TabsTrigger aria-label='View servers in a grid layout.' value='grid'>
+                                        <TabsTrigger aria-label='Voir les serveurs en grille' value='grid'>
                                             <LayoutCellsLarge width={20} height={20} color='white' />
                                         </TabsTrigger>
                                     </TabsList>
@@ -157,92 +158,47 @@ const DashboardContainer = () => {
                         </div>
                     ) : (
                         <>
-                            <TabsContent value='list'>
+                            <TabsContent value='list' className='outline-none'>
                                 <Pagination data={servers} onPageSelect={setPage}>
                                     {({ items }) =>
                                         items.length > 0 ? (
-                                            <PageListContainer>
+                                            <div className='flex flex-col gap-3'>
                                                 {items.map((server, index) => (
                                                     <div
                                                         key={server.uuid}
-                                                        className='transform-gpu skeleton-anim-2'
-                                                        style={{
-                                                            animationDelay: `${index * 50 + 50}ms`,
-                                                            animationTimingFunction:
-                                                                'linear(0,0.01,0.04 1.6%,0.161 3.3%,0.816 9.4%,1.046,1.189 14.4%,1.231,1.254 17%,1.259,1.257 18.6%,1.236,1.194 22.3%,1.057 27%,0.999 29.4%,0.955 32.1%,0.942,0.935 34.9%,0.933,0.939 38.4%,1 47.3%,1.011,1.017 52.6%,1.016 56.4%,1 65.2%,0.996 70.2%,1.001 87.2%,1)',
-                                                        }}
+                                                        className='animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both'
+                                                        style={{ animationDelay: `${index * 40}ms` }}
                                                     >
-                                                        <ServerRow
-                                                            className='flex-row'
-                                                            key={server.uuid}
-                                                            server={server}
-                                                        />
+                                                        <ServerRow server={server} className='w-full' />
                                                     </div>
                                                 ))}
-                                            </PageListContainer>
-                                        ) : (
-                                            <div className='flex flex-col items-center justify-center py-12 px-4'>
-                                                <div className='text-center'>
-                                                    <div className='w-16 h-16 mx-auto mb-4 rounded-full bg-[#ffffff11] flex items-center justify-center'>
-                                                        <House width={28} height={28} color='white' />
-                                                    </div>
-                                                    <h3 className='text-lg font-medium text-zinc-200 mb-2'>
-                                                        {serverViewMode === 'admin-all'
-                                                            ? 'No other servers found'
-                                                            : 'No servers found'}
-                                                    </h3>
-                                                    <p className='text-sm text-zinc-400 max-w-sm'>
-                                                        {serverViewMode === 'admin-all'
-                                                            ? 'There are no other servers to display.'
-                                                            : 'There are no servers associated with your account.'}
-                                                    </p>
-                                                </div>
                                             </div>
+                                        ) : (
+                                            <EmptyServerState admin={serverViewMode === 'admin-all'} />
                                         )
                                     }
                                 </Pagination>
                             </TabsContent>
-                            <TabsContent value='grid'>
+                            <TabsContent value='grid' className='outline-none'>
                                 <Pagination data={servers} onPageSelect={setPage}>
                                     {({ items }) =>
                                         items.length > 0 ? (
-                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                            <div className='grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4'>
                                                 {items.map((server, index) => (
                                                     <div
                                                         key={server.uuid}
-                                                        className='transform-gpu skeleton-anim-2'
-                                                        style={{
-                                                            animationDelay: `${index * 50 + 50}ms`,
-                                                            animationTimingFunction:
-                                                                'linear(0,0.01,0.04 1.6%,0.161 3.3%,0.816 9.4%,1.046,1.189 14.4%,1.231,1.254 17%,1.259,1.257 18.6%,1.236,1.194 22.3%,1.057 27%,0.999 29.4%,0.955 32.1%,0.942,0.935 34.9%,0.933,0.939 38.4%,1 47.3%,1.011,1.017 52.6%,1.016 56.4%,1 65.2%,0.996 70.2%,1.001 87.2%,1)',
-                                                        }}
+                                                        className='animate-in fade-in zoom-in-95 duration-500 fill-mode-both'
+                                                        style={{ animationDelay: `${index * 40}ms` }}
                                                     >
                                                         <ServerRow
-                                                            className='items-start! flex-col w-full gap-4 [&>div~div]:w-full'
-                                                            key={server.uuid}
                                                             server={server}
+                                                            className='flex-col items-start h-full min-h-[160px] justify-between'
                                                         />
                                                     </div>
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className='flex flex-col items-center justify-center py-12 px-4'>
-                                                <div className='text-center'>
-                                                    <div className='w-16 h-16 mx-auto mb-4 rounded-full bg-[#ffffff11] flex items-center justify-center'>
-                                                        <House width={28} height={28} color='white' />
-                                                    </div>
-                                                    <h3 className='text-lg font-medium text-zinc-200 mb-2'>
-                                                        {serverViewMode === 'admin-all'
-                                                            ? 'No other servers found'
-                                                            : 'No servers found'}
-                                                    </h3>
-                                                    <p className='text-sm text-zinc-400 max-w-sm'>
-                                                        {serverViewMode === 'admin-all'
-                                                            ? 'There are no other servers to display.'
-                                                            : 'There are no servers associated with your account.'}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            <EmptyServerState admin={serverViewMode === 'admin-all'} />
                                         )
                                     }
                                 </Pagination>
@@ -254,5 +210,30 @@ const DashboardContainer = () => {
         </PageContentBlock>
     );
 };
+
+/**
+ * Composant interne pour l'état vide (Empty State)
+ * Centralise le design pour éviter la répétition
+ */
+const EmptyServerState = ({ admin }: { admin: boolean }) => (
+    <div className='flex flex-col items-center justify-center py-20 px-6 rounded-3xl border border-dashed border-white/10 bg-white/[0.01]'>
+        <div className='relative mb-6'>
+            <div className='absolute inset-0 bg-blue-500/20 blur-3xl rounded-full' />
+            <div className='relative w-20 h-20 rounded-2xl bg-gradient-to-br from-white/10 to-white/[0.02] border border-white/10 flex items-center justify-center shadow-2xl'>
+                <House width={32} height={32} className='text-zinc-400' />
+            </div>
+        </div>
+        <div className='text-center space-y-2'>
+            <h3 className='text-xl font-bold text-white tracking-tight'>
+                {admin ? 'Aucun autre serveur trouvé' : 'Aucun serveur trouvé'}
+            </h3>
+            <p className='text-sm text-zinc-500 max-w-[280px] leading-relaxed'>
+                {admin
+                    ? 'La base de données ne contient aucun autre serveur à afficher pour le moment.'
+                    : "Il semblerait que vous n'ayez aucun serveur actif associé à votre compte."}
+            </p>
+        </div>
+    </div>
+);
 
 export default DashboardContainer;

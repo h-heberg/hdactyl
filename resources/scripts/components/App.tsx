@@ -60,10 +60,7 @@ const App = () => {
         <>
             <GlobalStylesheet />
             <StoreProvider store={store}>
-                <div
-                    data-pyro-routerwrap=''
-                    className='relative w-full h-full flex flex-row overflow-hidden rounded-lg'
-                >
+                <div className='relative w-full h-full flex flex-row overflow-hidden rounded-lg'>
                     <Toaster
                         theme='dark'
                         toastOptions={{

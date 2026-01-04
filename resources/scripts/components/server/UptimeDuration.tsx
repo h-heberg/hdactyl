@@ -9,7 +9,7 @@ const UptimeDuration = ({ uptime }: { uptime: number }) => {
     if (days > 0) {
         return (
             <>
-                {days}d {hours}h {minutes}m
+                {days}j {hours}h {minutes}m
             </>
         );
     }

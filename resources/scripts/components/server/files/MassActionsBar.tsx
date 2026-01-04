@@ -1,10 +1,10 @@
+import { Archive, Xmark } from '@gravity-ui/icons';
 import { useEffect, useState } from 'react';
+import { LuFolderOpen, LuTrash } from 'react-icons/lu';
 
 import ActionButton from '@/components/elements/ActionButton';
-import Spinner from '@/components/elements/Spinner';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 import { Dialog } from '@/components/elements/dialog';
-import FadeTransition from '@/components/elements/transitions/FadeTransition';
 import RenameFileModal from '@/components/server/files/RenameFileModal';
 
 import compressFiles from '@/api/server/files/compressFiles';
@@ -17,15 +17,15 @@ import useFlash from '@/plugins/useFlash';
 
 const MassActionsBar = () => {
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
-
     const { mutate } = useFileManagerSwr();
     const { clearFlashes, clearAndAddHttpError } = useFlash();
+
     const [loading, setLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
     const [showConfirm, setShowConfirm] = useState(false);
     const [showMove, setShowMove] = useState(false);
-    const directory = ServerContext.useStoreState((state) => state.files.directory);
 
+    const directory = ServerContext.useStoreState((state) => state.files.directory);
     const selectedFiles = ServerContext.useStoreState((state) => state.files.selectedFiles);
     const setSelectedFiles = ServerContext.useStoreActions((actions) => actions.files.setSelectedFiles);
 
@@ -36,20 +36,20 @@ const MassActionsBar = () => {
     const onClickCompress = () => {
         setLoading(true);
         clearFlashes('files');
-        setLoadingMessage('Archiving files...');
+        setLoadingMessage('Archivage des fichiers...');
 
         compressFiles(uuid, directory, selectedFiles)
             .then(() => mutate())
             .then(() => setSelectedFiles([]))
             .catch((error) => clearAndAddHttpError({ key: 'files', error }))
-            .then(() => setLoading(false));
+            .finally(() => setLoading(false));
     };
 
     const onClickConfirmDeletion = () => {
         setLoading(true);
         setShowConfirm(false);
         clearFlashes('files');
-        setLoadingMessage('Deleting files...');
+        setLoadingMessage('Suppression des fichiers...');
 
         deleteFiles(uuid, directory, selectedFiles)
             .then(async () => {
@@ -60,64 +60,109 @@ const MassActionsBar = () => {
                 await mutate();
                 clearAndAddHttpError({ key: 'files', error });
             })
-            .then(() => setLoading(false));
+            .finally(() => setLoading(false));
     };
+
+    if (selectedFiles.length === 0 && !loading) return null;
 
     return (
         <>
-            <div className={`pointer-events-none fixed bottom-0 z-20 left-0 right-0 flex justify-center`}>
-                <SpinnerOverlay visible={loading} size={'large'} fixed>
-                    {loadingMessage}
-                </SpinnerOverlay>
-                <Dialog.Confirm
-                    title={'Delete Files'}
-                    open={showConfirm}
-                    confirm={'Delete'}
-                    onClose={() => setShowConfirm(false)}
-                    onConfirmed={onClickConfirmDeletion}
-                    loading={loading}
-                >
-                    <p className={'mb-2'}>
-                        Are you sure you want to delete&nbsp;
-                        <span className={'font-semibold text-zinc-50'}>{selectedFiles.length} files</span>? This is a
-                        permanent action and the files cannot be recovered.
-                    </p>
-                    {selectedFiles.slice(0, 15).map((file) => (
-                        <li key={file}>{file}</li>
-                    ))}
-                    {selectedFiles.length > 15 && <li>and {selectedFiles.length - 15} others</li>}
-                </Dialog.Confirm>
-                {showMove && (
-                    <RenameFileModal
-                        files={selectedFiles}
-                        visible
-                        appear
-                        useMoveTerminology
-                        onDismissed={() => setShowMove(false)}
-                    />
-                )}
-                <FadeTransition duration='duration-75' show={selectedFiles.length > 0} appear unmount>
-                    <div
-                        className={
-                            'pointer-events-none fixed bottom-0 left-0 right-0 mb-6 flex justify-center w-full z-50'
-                        }
-                    >
-                        <div className={`flex items-center space-x-4 pointer-events-auto rounded-sm p-4 bg-black/50`}>
-                            <ActionButton onClick={() => setShowMove(true)} disabled={loading}>
-                                {loading && loadingMessage.includes('Moving') && <Spinner size='small' />}
-                                Move
-                            </ActionButton>
-                            <ActionButton onClick={onClickCompress} disabled={loading}>
-                                {loading && loadingMessage.includes('Archiving') && <Spinner size='small' />}
-                                Archive
-                            </ActionButton>
-                            <ActionButton variant='danger' onClick={() => setShowConfirm(true)} disabled={loading}>
-                                {loading && loadingMessage.includes('Deleting') && <Spinner size='small' />}
-                                Delete
-                            </ActionButton>
+            <SpinnerOverlay visible={loading} size={'large'} fixed>
+                {loadingMessage}
+            </SpinnerOverlay>
+
+            <Dialog.Confirm
+                title={'Supprimer les fichiers'}
+                open={showConfirm}
+                confirm={'Supprimer définitivement'}
+                onClose={() => setShowConfirm(false)}
+                onConfirmed={onClickConfirmDeletion}
+                loading={loading}
+            >
+                <p className='mb-4 text-neutral-400'>
+                    Êtes-vous sûr de vouloir supprimer{' '}
+                    <span className='text-white font-bold'>{selectedFiles.length} fichier(s)</span> ? Cette action est
+                    irréversible.
+                </p>
+                <div className='bg-black/20 border border-white/5 rounded-lg p-3 max-h-40 overflow-y-auto custom-scrollbar'>
+                    <ul className='text-xs space-y-1 text-neutral-500 font-mono'>
+                        {selectedFiles.slice(0, 10).map((file) => (
+                            <li key={file} className='truncate'>
+                                • {file}
+                            </li>
+                        ))}
+                        {selectedFiles.length > 10 && (
+                            <li className='text-brand italic pt-1'>... et {selectedFiles.length - 10} autres</li>
+                        )}
+                    </ul>
+                </div>
+            </Dialog.Confirm>
+
+            {showMove && (
+                <RenameFileModal
+                    files={selectedFiles}
+                    visible
+                    appear
+                    useMoveTerminology
+                    onDismissed={() => setShowMove(false)}
+                />
+            )}
+
+            {/* Barre flottante - Transition via classes CSS standard */}
+            <div className='fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-fit px-4 animate-in fade-in slide-in-from-bottom-4 duration-300'>
+                <div className='flex items-center gap-2 bg-neutral-900/80 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl shadow-black/50'>
+                    <div className='px-4 border-r border-white/10 flex items-center gap-3'>
+                        <div className='flex items-center justify-center w-6 h-6 bg-brand rounded-full text-[10px] font-bold text-brand-950'>
+                            {selectedFiles.length}
                         </div>
+                        <span className='text-xs font-medium text-neutral-300 hidden sm:inline'>Sélectionnés</span>
                     </div>
-                </FadeTransition>
+
+                    <div className='flex items-center gap-1.5 px-2'>
+                        <ActionButton
+                            variant='secondary'
+                            size='sm'
+                            onClick={() => setShowMove(true)}
+                            disabled={loading}
+                            className='!bg-transparent hover:!bg-white/5 border-none'
+                        >
+                            <LuFolderOpen className='w-4 h-4 mr-2 opacity-60' />
+                            Déplacer
+                        </ActionButton>
+
+                        <ActionButton
+                            variant='secondary'
+                            size='sm'
+                            onClick={onClickCompress}
+                            disabled={loading}
+                            className='!bg-transparent hover:!bg-white/5 border-none'
+                        >
+                            <Archive className='w-4 h-4 mr-2 opacity-60' />
+                            Archiver
+                        </ActionButton>
+
+                        <div className='w-px h-4 bg-white/10 mx-1' />
+
+                        <ActionButton
+                            variant='danger'
+                            size='sm'
+                            onClick={() => setShowConfirm(true)}
+                            disabled={loading}
+                            className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border-none px-4'
+                        >
+                            <LuTrash className='w-4 h-4 mr-2' />
+                            Supprimer
+                        </ActionButton>
+                    </div>
+
+                    <button
+                        onClick={() => setSelectedFiles([])}
+                        className='p-2 hover:bg-white/5 rounded-xl transition-colors text-neutral-500 hover:text-white'
+                        title='Désélectionner tout'
+                    >
+                        <Xmark className='w-5 h-5' />
+                    </button>
+                </div>
             </div>
         </>
     );

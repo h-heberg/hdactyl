@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp, Lock } from '@gravity-ui/icons';
+import clsx from 'clsx';
 import debounce from 'debounce';
 import { memo, useState } from 'react';
 import isEqual from 'react-fast-compare';
@@ -30,7 +31,6 @@ interface Props {
 
 const VariableBox = ({ variable }: Props) => {
     const FLASH_KEY = `server:startup:${variable.envVariable}`;
-
     const uuid = ServerContext.useStoreState((state) => state.server.data!.uuid);
     const [loading, setLoading] = useState(false);
     const [canEdit] = usePermissions(['startup.update']);
@@ -69,121 +69,147 @@ const VariableBox = ({ variable }: Props) => {
     const selectValues = variable.rules.find((v) => v.startsWith('in:'))?.split(',') || [];
 
     return (
-        <div className='flex flex-col justify-between gap-4 bg-linear-to-b from-[#ffffff08] to-[#ffffff05] border-[1px] border-[#ffffff15] p-4 sm:p-5 rounded-xl hover:border-[#ffffff20] transition-all'>
+        <div
+            className={clsx(
+                'flex flex-col justify-between gap-5 transition-all duration-300',
+                'bg-white/[0.01] hover:bg-white/[0.03] border border-white/[0.05] hover:border-white/10 shadow-lg',
+                'p-5 sm:p-6 rounded-[24px] relative overflow-hidden group',
+            )}
+        >
+            {/* Dégradé d'accentuation interne */}
+            <div className='absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none' />
+
             <FlashMessageRender byKey={FLASH_KEY} />
-            <div className='space-y-3'>
-                <div className='flex flex-col items-baseline sm:flex-row sm:justify-between gap-2 sm:gap-3'>
-                    <div className='flex items-center gap-2 min-w-0'>
-                        {!variable.isEditable && (
-                            <Lock
-                                width={22}
-                                height={22}
-                                fill={'currentColor'}
-                                className='text-neutral-500 w-4 h-4 flex-shrink-0'
-                            />
-                        )}
-                        <span className='text-sm font-medium text-neutral-200 break-words'>{variable.name}</span>
+
+            <div className='relative z-10 space-y-4'>
+                <div className='flex flex-col gap-2'>
+                    <div className='flex items-center justify-between gap-3'>
+                        <div className='flex items-center gap-2 min-w-0'>
+                            {!variable.isEditable && (
+                                <div className='p-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20 text-amber-500'>
+                                    <Lock width={14} height={14} />
+                                </div>
+                            )}
+                            <span className='text-sm font-black uppercase tracking-wider text-zinc-100 truncate'>
+                                {variable.name}
+                            </span>
+                        </div>
+                        <div className='px-2 py-0.5 bg-black/40 border border-white/5 rounded text-[10px] font-mono text-zinc-500 group-hover:text-zinc-300 transition-colors uppercase'>
+                            {variable.envVariable}
+                        </div>
                     </div>
-                    <div className='text-xs leading-5 text-neutral-500 font-mono rounded w-fit'>
-                        {variable.envVariable}
-                    </div>
+
+                    <p className='text-xs leading-relaxed text-zinc-400 font-medium opacity-80 group-hover:opacity-100 transition-opacity'>
+                        {variable.description}
+                    </p>
                 </div>
-                <p className='text-xs sm:text-sm text-neutral-400 leading-relaxed break-words'>
-                    {variable.description}
-                </p>
-            </div>
-            <InputSpinner visible={loading}>
-                {useSwitch ? (
-                    <div className='flex items-center justify-between p-3 sm:p-4 bg-linear-to-b from-[#ffffff06] to-[#ffffff03] border border-[#ffffff10] rounded-xl'>
-                        <span className='text-sm font-medium text-neutral-300'>
-                            {isStringSwitch
-                                ? variable.serverValue === 'true'
-                                    ? 'Enabled'
-                                    : 'Disabled'
-                                : variable.serverValue === '1'
-                                  ? 'On'
-                                  : 'Off'}
-                        </span>
-                        <Switch
-                            disabled={!canEdit || !variable.isEditable}
-                            name={variable.envVariable}
-                            defaultChecked={
-                                isStringSwitch ? variable.serverValue === 'true' : variable.serverValue === '1'
-                            }
-                            onCheckedChange={() => {
-                                if (canEdit && variable.isEditable) {
-                                    if (isStringSwitch) {
-                                        setVariableValue(variable.serverValue === 'true' ? 'false' : 'true');
-                                    } else {
-                                        setVariableValue(variable.serverValue === '1' ? '0' : '1');
-                                    }
-                                }
-                            }}
-                        />
-                    </div>
-                ) : (
-                    <>
-                        {selectValues.length > 0 && (variable.serverValue ?? variable.defaultValue) ? (
-                            <DropdownMenu onOpenChange={(open) => setDropDownOpen(open)}>
-                                <DropdownMenuTrigger asChild>
-                                    <button
-                                        className='w-full flex items-center justify-between gap-3 h-11 sm:h-12 px-3 sm:px-4 text-sm font-medium text-white transition-all duration-200 bg-linear-to-b from-[#ffffff10] to-[#ffffff09] border border-[#ffffff15] rounded-xl hover:from-[#ffffff15] hover:to-[#ffffff10] hover:border-[#ffffff25] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation'
-                                        disabled={!canEdit || !variable.isEditable}
-                                    >
-                                        <span className='font-mono text-neutral-200 truncate text-left'>
-                                            {variable.serverValue}
-                                        </span>
-                                        {dropDownOpen ? (
-                                            <ChevronUp
-                                                width={22}
-                                                height={22}
-                                                fill={'currentColor'}
-                                                className='w-[14px] h-[14px] opacity-60 flex-shrink-0'
-                                            />
-                                        ) : (
-                                            <ChevronDown
-                                                width={22}
-                                                height={22}
-                                                fill={'currentColor'}
-                                                className='w-[14px] h-[14px] opacity-60 flex-shrink-0'
-                                            />
+
+                <div className='relative pt-2'>
+                    <InputSpinner visible={loading}>
+                        {useSwitch ? (
+                            <div className='flex items-center justify-between p-4 bg-black/20 border border-white/5 rounded-2xl'>
+                                <div className='flex flex-col'>
+                                    <span className='text-[10px] uppercase font-black text-zinc-500 tracking-tighter mb-1'>
+                                        Status
+                                    </span>
+                                    <span
+                                        className={clsx(
+                                            'text-sm font-mono font-bold',
+                                            (
+                                                isStringSwitch
+                                                    ? variable.serverValue === 'true'
+                                                    : variable.serverValue === '1'
+                                            )
+                                                ? 'text-emerald-400'
+                                                : 'text-zinc-400',
                                         )}
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className='z-99999' sideOffset={8}>
-                                    <DropdownMenuRadioGroup
-                                        value={variable.serverValue ?? ''}
-                                        onValueChange={setVariableValue}
                                     >
-                                        {selectValues.map((selectValue) => (
-                                            <DropdownMenuRadioItem
-                                                key={selectValue.replace('in:', '')}
-                                                value={selectValue.replace('in:', '')}
-                                            >
-                                                {selectValue.replace('in:', '')}
-                                            </DropdownMenuRadioItem>
-                                        ))}
-                                    </DropdownMenuRadioGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        ) : (
-                            <Input
-                                className='w-full h-11 sm:h-12 text-sm sm:text-base'
-                                onKeyUp={(e) => {
-                                    if (canEdit && variable.isEditable) {
-                                        setVariableValue(e.currentTarget.value);
+                                        {isStringSwitch
+                                            ? variable.serverValue === 'true'
+                                                ? 'ENABLED'
+                                                : 'DISABLED'
+                                            : variable.serverValue === '1'
+                                              ? 'ACTIVE'
+                                              : 'INACTIVE'}
+                                    </span>
+                                </div>
+                                <Switch
+                                    disabled={!canEdit || !variable.isEditable}
+                                    name={variable.envVariable}
+                                    defaultChecked={
+                                        isStringSwitch ? variable.serverValue === 'true' : variable.serverValue === '1'
                                     }
-                                }}
-                                readOnly={!canEdit || !variable.isEditable}
-                                name={variable.envVariable}
-                                defaultValue={variable.serverValue ?? ''}
-                                placeholder={variable.defaultValue || 'Enter value...'}
-                                disabled={!canEdit || !variable.isEditable}
-                            />
+                                    onCheckedChange={() => {
+                                        if (canEdit && variable.isEditable) {
+                                            const newVal = isStringSwitch
+                                                ? variable.serverValue === 'true'
+                                                    ? 'false'
+                                                    : 'true'
+                                                : variable.serverValue === '1'
+                                                  ? '0'
+                                                  : '1';
+                                            setVariableValue(newVal);
+                                        }
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div className='relative group/input'>
+                                {selectValues.length > 0 && (variable.serverValue ?? variable.defaultValue) ? (
+                                    <DropdownMenu onOpenChange={(open) => setDropDownOpen(open)}>
+                                        <DropdownMenuTrigger asChild>
+                                            <button
+                                                className='w-full flex items-center justify-between gap-3 h-12 px-4 text-sm font-bold text-zinc-200 transition-all bg-black/20 border border-white/5 rounded-xl hover:bg-black/40 hover:border-white/20 disabled:opacity-30'
+                                                disabled={!canEdit || !variable.isEditable}
+                                            >
+                                                <span className='font-mono truncate'>{variable.serverValue}</span>
+                                                <div className='text-zinc-500 transition-transform duration-200'>
+                                                    {dropDownOpen ? (
+                                                        <ChevronUp width={18} height={18} />
+                                                    ) : (
+                                                        <ChevronDown width={18} height={18} />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className='z-[9999]' sideOffset={8}>
+                                            <DropdownMenuRadioGroup
+                                                value={variable.serverValue ?? ''}
+                                                onValueChange={setVariableValue}
+                                            >
+                                                {selectValues.map((val) => {
+                                                    const cleanVal = val.replace('in:', '');
+                                                    return (
+                                                        <DropdownMenuRadioItem
+                                                            key={cleanVal}
+                                                            value={cleanVal}
+                                                            className='font-mono text-xs'
+                                                        >
+                                                            {cleanVal}
+                                                        </DropdownMenuRadioItem>
+                                                    );
+                                                })}
+                                            </DropdownMenuRadioGroup>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                ) : (
+                                    <Input
+                                        className='w-full h-12 !bg-black/20 !border-white/5 focus:!border-white/20 !rounded-xl font-mono text-sm'
+                                        onKeyUp={(e) =>
+                                            canEdit && variable.isEditable && setVariableValue(e.currentTarget.value)
+                                        }
+                                        readOnly={!canEdit || !variable.isEditable}
+                                        name={variable.envVariable}
+                                        defaultValue={variable.serverValue ?? ''}
+                                        placeholder={variable.defaultValue || 'Enter value...'}
+                                        disabled={!canEdit || !variable.isEditable}
+                                    />
+                                )}
+                            </div>
                         )}
-                    </>
-                )}
-            </InputSpinner>
+                    </InputSpinner>
+                </div>
+            </div>
         </div>
     );
 };

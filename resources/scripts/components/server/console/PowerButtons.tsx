@@ -1,3 +1,4 @@
+import { ArrowRotateRight, PlayFill, Skull, StopFill } from '@gravity-ui/icons';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -17,6 +18,7 @@ const PowerButtons = ({ className }: PowerButtonProps) => {
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
 
     const killable = status === 'stopping';
+
     const onButtonClick = (
         action: PowerAction | 'kill-confirmed',
         e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
@@ -28,11 +30,13 @@ const PowerButtons = ({ className }: PowerButtonProps) => {
 
         if (instance) {
             if (action === 'start') {
-                toast.success('Your server is starting!');
+                toast.success('Votre serveur démarre !');
             } else if (action === 'restart') {
-                toast.success('Your server is restarting.');
-            } else {
-                toast.success('Your server is being stopped.');
+                toast.success('Votre serveur redémarre.');
+            } else if (action === 'stop') {
+                toast.success("Votre serveur est en cours d'arrêt.");
+            } else if (action === 'kill-confirmed') {
+                toast.error('Processus du serveur arrêté.');
             }
             setOpen(false);
             instance.send('set state', action === 'kill-confirmed' ? 'kill' : action);
@@ -45,83 +49,63 @@ const PowerButtons = ({ className }: PowerButtonProps) => {
         }
     }, [status]);
 
-    if (!status) {
-        return null;
-    }
+    if (!status) return null;
+
+    const baseBtnClass =
+        'flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed group';
 
     return (
         <div
-            className={className}
-            style={{
-                animationTimingFunction:
-                    'linear(0 0%, 0.01 0.8%, 0.04 1.6%, 0.161 3.3%, 0.816 9.4%, 1.046 11.9%, 1.189 14.4%, 1.231 15.7%, 1.254 17%, 1.259 17.8%, 1.257 18.6%, 1.236 20.45%, 1.194 22.3%, 1.057 27%, 0.999 29.4%, 0.955 32.1%, 0.942 33.5%, 0.935 34.9%, 0.933 36.65%, 0.939 38.4%, 1 47.3%, 1.011 49.95%, 1.017 52.6%, 1.016 56.4%, 1 65.2%, 0.996 70.2%, 1.001 87.2%, 1 100%)',
-            }}
+            className={`flex items-center bg-[#09090b] p-1.5 rounded-xl border border-white/10 shadow-inner ${className}`}
         >
             <Dialog.Confirm
                 open={open}
                 hideCloseIcon
                 onClose={() => setOpen(false)}
-                title={'Forcibly Stop Process'}
-                confirm={'Continue'}
+                title={"Forcer l'arrêt du processus"}
+                confirm={'Continuer'}
                 onConfirmed={onButtonClick.bind(this, 'kill-confirmed')}
             >
-                Forcibly stopping a server can lead to data corruption.
+                Forcer l&apos;arrêt du processus du serveur peut entraîner une perte de données ou une corruption des
+                fichiers. Êtes-vous sûr de vouloir continuer ?
             </Dialog.Confirm>
+
             <Can action={'control.start'}>
                 <button
-                    style={
-                        status === 'offline'
-                            ? {
-                                  background:
-                                      'radial-gradient(109.26% 109.26% at 49.83% 13.37%, #FF343C 0%, #F06F53 100%)',
-                                  opacity: 1,
-                              }
-                            : {
-                                  background:
-                                      'radial-gradient(124.75% 124.75% at 50.01% -10.55%, rgb(36, 36, 36) 0%, rgb(20, 20, 20) 100%)',
-                                  opacity: 0.5,
-                              }
-                    }
-                    className='px-8 py-3 border-[1px] border-[#ffffff12] rounded-l-full rounded-r-md text-sm font-bold shadow-md cursor-pointer'
+                    className={`${baseBtnClass} cursor-pointer rounded-l-lg ${status === 'offline' ? 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
                     disabled={status !== 'offline'}
                     onClick={onButtonClick.bind(this, 'start')}
                 >
-                    Start
+                    <PlayFill width={12} height={12} />
+                    Démarrer
                 </button>
             </Can>
+
             <Can action={'control.restart'}>
                 <button
-                    style={{
-                        background:
-                            'radial-gradient(124.75% 124.75% at 50.01% -10.55%, rgb(36, 36, 36) 0%, rgb(20, 20, 20) 100%)',
-                    }}
-                    className='px-8 py-3 border-[1px] border-[#ffffff12] rounded-none text-sm font-bold shadow-md cursor-pointer'
-                    disabled={!status}
+                    className={`${baseBtnClass} cursor-pointer border-x border-white/5 ${status !== 'offline' ? 'text-zinc-300 hover:text-white hover:bg-white/5' : 'text-zinc-500'}`}
+                    disabled={status === 'offline'}
                     onClick={onButtonClick.bind(this, 'restart')}
                 >
-                    Restart
+                    <ArrowRotateRight width={12} height={12} />
+                    Redémarrer
                 </button>
             </Can>
+
             <Can action={'control.stop'}>
                 <button
-                    style={
-                        status === 'offline'
-                            ? {
-                                  background:
-                                      'radial-gradient(124.75% 124.75% at 50.01% -10.55%, rgb(36, 36, 36) 0%, rgb(20, 20, 20) 100%)',
-                                  opacity: 0.5,
-                              }
-                            : {
-                                  background:
-                                      'radial-gradient(109.26% 109.26% at 49.83% 13.37%, #FF343C 0%, #F06F53 100%)',
-                                  opacity: 1,
-                              }
-                    }
-                    className='px-8 py-3 border-[1px] border-[#ffffff12] rounded-r-full rounded-l-md text-sm font-bold shadow-md transition-all cursor-pointer'
+                    className={`${baseBtnClass} cursor-pointer rounded-r-lg ${
+                        killable
+                            ? 'bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-500/40'
+                            : status !== 'offline'
+                              ? 'bg-orange-600/10 text-orange-400 hover:bg-orange-600/20 border border-orange-500/20'
+                              : 'text-zinc-500'
+                    }`}
                     disabled={status === 'offline'}
                     onClick={onButtonClick.bind(this, killable ? 'kill' : 'stop')}
                 >
-                    {killable ? 'Kill' : 'Stop'}
+                    {killable ? <Skull width={12} height={12} /> : <StopFill width={12} height={12} />}
+                    {killable ? 'Tuer' : 'Arrêter'}
                 </button>
             </Can>
         </div>

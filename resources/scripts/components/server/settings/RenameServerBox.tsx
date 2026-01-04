@@ -1,7 +1,10 @@
 import { Actions, useStoreActions } from 'easy-peasy';
-import { Form, Formik } from 'formik';
+import { Form, Formik, useFormikContext } from 'formik';
+import { LuLoader, LuSave } from 'react-icons/lu';
 import { toast } from 'sonner';
 import { object, string } from 'yup';
+
+// Ajout d'icônes
 
 import ActionButton from '@/components/elements/ActionButton';
 import Field from '@/components/elements/Field';
@@ -19,14 +22,51 @@ interface Values {
 }
 
 const RenameServerForm = () => {
+    const { isSubmitting, isValid, dirty } = useFormikContext<Values>();
+
     return (
-        <TitledGreyBox title={'Server Details'}>
-            <Form className='flex flex-col gap-4'>
-                <Field id={'name'} name={'name'} label={'Server Name'} type={'text'} />
-                <Field id={'description'} name={'description'} label={'Server Description'} type={'text'} />
-                <div className={`mt-6 text-right`}>
-                    <ActionButton variant='primary' type={'submit'}>
-                        Save
+        <TitledGreyBox title={'Server Identity'}>
+            <Form className='relative'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <div className='space-y-1'>
+                        <Field
+                            id={'name'}
+                            name={'name'}
+                            label={'Nom du serveur'}
+                            type={'text'}
+                            placeholder='Mon super serveur'
+                            disabled
+                        />
+                    </div>
+
+                    <div className='space-y-1'>
+                        <Field
+                            id={'description'}
+                            name={'description'}
+                            label={'Description (Optionnelle)'}
+                            type={'text'}
+                            placeholder='Environnement de production...'
+                        />
+                    </div>
+                </div>
+
+                <div className='mt-8 pt-4 border-t border-white/5 flex items-center justify-between'>
+                    <div className='hidden sm:block'>
+                        {!dirty && <span className='text-xs text-neutral-500'>Aucun changement détecté.</span>}
+                    </div>
+
+                    <ActionButton
+                        variant='primary'
+                        type={'submit'}
+                        disabled={isSubmitting || !isValid || !dirty}
+                        className='group flex items-center gap-2 min-w-[120px] justify-center'
+                    >
+                        {isSubmitting ? (
+                            <LuLoader className='w-4 h-4 animate-spin' />
+                        ) : (
+                            <LuSave className='w-4 h-4 group-hover:scale-110 transition-transform' />
+                        )}
+                        <span>{isSubmitting ? 'Saving...' : 'Save Changes'}</span>
                     </ActionButton>
                 </div>
             </Form>
@@ -39,16 +79,21 @@ const RenameServerBox = () => {
     const setServer = ServerContext.useStoreActions((actions) => actions.server.setServer);
     const { addError, clearFlashes } = useStoreActions((actions: Actions<ApplicationStore>) => actions.flashes);
 
-    const submit = ({ name, description }: Values) => {
+    const submit = (values: Values, { setSubmitting }: any) => {
         clearFlashes('settings');
-        toast('Updating server details...');
-        renameServer(server.uuid, name, description)
-            .then(() => setServer({ ...server, name, description }))
+        const updateToast = toast.loading('Updating server details...');
+
+        renameServer(server.uuid, values.name, values.description)
+            .then(() => {
+                setServer({ ...server, ...values });
+                toast.success('Identity updated successfully', { id: updateToast });
+            })
             .catch((error) => {
                 console.error(error);
                 addError({ key: 'settings', message: httpErrorToHuman(error) });
+                toast.error('Failed to update server', { id: updateToast });
             })
-            .then(() => toast.success('Server details updated!'));
+            .finally(() => setSubmitting(false));
     };
 
     return (
@@ -56,12 +101,13 @@ const RenameServerBox = () => {
             onSubmit={submit}
             initialValues={{
                 name: server.name,
-                description: server.description,
+                description: server.description || '',
             }}
             validationSchema={object().shape({
-                name: string().required().min(1),
-                description: string().nullable(),
+                name: string().required('Le nom est requis').min(1).max(191),
+                description: string().nullable().max(191),
             })}
+            enableReinitialize
         >
             <RenameServerForm />
         </Formik>

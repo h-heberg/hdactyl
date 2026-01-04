@@ -95,7 +95,7 @@ export interface ServerStore {
     clearServerState: Action<ServerStore>;
 }
 
-export const ServerContext = createContextStore<ServerStore>({
+export const ServerContext: ReturnType<typeof createContextStore<ServerStore>> = createContextStore<ServerStore>({
     server,
     socket,
     status,

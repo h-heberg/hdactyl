@@ -12,6 +12,8 @@ use Pterodactyl\Services\Nests\NestCreationService;
 use Pterodactyl\Services\Nests\NestDeletionService;
 use Pterodactyl\Contracts\Repository\NestRepositoryInterface;
 use Pterodactyl\Http\Requests\Admin\Nest\StoreNestFormRequest;
+use Storage;
+use Str;
 
 class NestController extends Controller
 {
@@ -55,7 +57,18 @@ class NestController extends Controller
      */
     public function store(StoreNestFormRequest $request): RedirectResponse
     {
-        $nest = $this->nestCreationService->handle($request->normalize());
+        $data = $request->normalize();
+
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $filename = Str::random(40) . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('nest-images'), $filename);
+            $data['image'] = 'nest-images/' . $filename;
+        } else {
+            unset($data['image']);
+        }
+
+        $nest = $this->nestCreationService->handle($data);
         $this->alert->success(trans('admin/nests.notices.created', ['name' => htmlspecialchars($nest->name)]))->flash();
 
         return redirect()->route('admin.nests.view', $nest->id);
@@ -81,7 +94,28 @@ class NestController extends Controller
      */
     public function update(StoreNestFormRequest $request, int $nest): RedirectResponse
     {
-        $this->nestUpdateService->handle($nest, $request->normalize());
+        $data = $request->normalize();
+        $nestModel = $this->repository->find($nest);
+
+        if ($request->has('remove_image') && $request->input('remove_image') == '1') {
+            if ($nestModel->image && file_exists(public_path($nestModel->image))) {
+                unlink(public_path($nestModel->image));
+            }
+            $data['image'] = null;
+        } elseif ($request->hasFile('image')) {
+            if ($nestModel->image && file_exists(public_path($nestModel->image))) {
+                unlink(public_path($nestModel->image));
+            }
+
+            $image = $request->file('image');
+            $filename = Str::random(40) . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('nest-images'), $filename);
+            $data['image'] = 'nest-images/' . $filename;
+        } else {
+            unset($data['image']);
+        }
+
+        $this->nestUpdateService->handle($nest, $data);
         $this->alert->success(trans('admin/nests.notices.updated'))->flash();
 
         return redirect()->route('admin.nests.view', $nest);
@@ -94,6 +128,12 @@ class NestController extends Controller
      */
     public function destroy(int $nest): RedirectResponse
     {
+        $nestModel = $this->repository->find($nest);
+
+        if ($nestModel->image && file_exists(public_path($nestModel->image))) {
+            unlink(public_path($nestModel->image));
+        }
+
         $this->nestDeletionService->handle($nest);
         $this->alert->success(trans('admin/nests.notices.deleted'))->flash();
 

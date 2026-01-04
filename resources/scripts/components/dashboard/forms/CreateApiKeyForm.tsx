@@ -1,7 +1,6 @@
 import { Actions, useStoreActions } from 'easy-peasy';
 import { Field, Form, Formik, FormikHelpers } from 'formik';
 import { useState } from 'react';
-import { Fragment } from 'react';
 import { object, string } from 'yup';
 
 import FlashMessageRender from '@/components/FlashMessageRender';
@@ -10,7 +9,6 @@ import ActionButton from '@/components/elements/ActionButton';
 import ContentBox from '@/components/elements/ContentBox';
 import FormikFieldWrapper from '@/components/elements/FormikFieldWrapper';
 import Input from '@/components/elements/Input';
-import PageContentBlock from '@/components/elements/PageContentBlock';
 import SpinnerOverlay from '@/components/elements/SpinnerOverlay';
 
 import createApiKey from '@/api/account/createApiKey';
@@ -72,24 +70,24 @@ const CreateApiKeyForm = ({ onKeyCreated }: { onKeyCreated: (key: ApiKey) => voi
                             <FormikFieldWrapper
                                 label='Description'
                                 name='description'
-                                description='A description of this API key.'
+                                description='Une description pour vous aider à identifier cette clé API plus tard.'
                             >
                                 <Field name='description' as={Input} className='w-full' />
                             </FormikFieldWrapper>
 
                             {/* Allowed IPs Field */}
                             <FormikFieldWrapper
-                                label='Allowed IPs'
+                                label='Adresses IP autorisées'
                                 name='allowedIps'
-                                description='Leave blank to allow any IP address to use this API key, otherwise provide each IP address on a new line.'
+                                description="Laissez vide pour autoriser n'importe quelle adresse IP à utiliser cette clé API, sinon fournissez chaque adresse IP sur une nouvelle ligne. Remarque : Vous pouvez également utiliser des plages CIDR ici."
                             >
                                 <Field name='allowedIps' as={Input} className='w-full' />
                             </FormikFieldWrapper>
 
                             {/* Submit Button below form fields */}
                             <div className='flex justify-end mt-6'>
-                                <ActionButton type='submit' disabled={isSubmitting}>
-                                    {isSubmitting ? 'Creating...' : 'Create API Key'}
+                                <ActionButton type='submit' disabled={isSubmitting} variant='primary'>
+                                    {isSubmitting ? 'Création...' : 'Créer la clé API'}
                                 </ActionButton>
                             </div>
                         </Form>
